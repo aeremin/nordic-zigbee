@@ -1,0 +1,63 @@
+{
+  "configurations": [
+    {
+      "name": "WSL",
+      "intelliSenseMode": "gcc-x64",
+      "compilerPath": "/usr/bin/gcc",
+      "includePath": [
+        "${workspaceFolder}/**",
+        "${workspaceFolder}/../ZigBee2/external/zboss/include/zcl",
+        "${workspaceFolder}/../ZigBee2/components/libraries/gpiote",
+        "${workspaceFolder}/../ZigBee2/external/fprintf",
+        "${workspaceFolder}/../ZigBee2/components/libraries/experimental_section_vars",
+        "${workspaceFolder}/../ZigBee2/external/zboss/osif",
+        "${workspaceFolder}/../ZigBee2/components/libraries/atomic",
+        "${workspaceFolder}/../ZigBee2/external/nRF-IEEE-802.15.4-radio-driver/src",
+        "${workspaceFolder}/../ZigBee2/external/zboss/include",
+        "${workspaceFolder}/../ZigBee2/external/nRF-IEEE-802.15.4-radio-driver/src/mac_features",
+        "${workspaceFolder}/../ZigBee2/components/toolchain/cmsis/include",
+        "${workspaceFolder}/../ZigBee2/components/libraries/balloc",
+        "${workspaceFolder}/../ZigBee2/components/libraries/log",
+        "${workspaceFolder}/../ZigBee2/components/libraries/memobj",
+        "${workspaceFolder}/../ZigBee2/modules/nrfx/mdk",
+        "${workspaceFolder}/../ZigBee2/components/libraries/strerror",
+        "${workspaceFolder}/../ZigBee2/integration/nrfx",
+        "${workspaceFolder}/../ZigBee2/modules/nrfx/drivers/include",
+        "${workspaceFolder}/../ZigBee2/components/libraries/pwm",
+        "${workspaceFolder}/../ZigBee2/components/libraries/ringbuf",
+        "${workspaceFolder}/../ZigBee2/modules/nrfx",
+        "${workspaceFolder}/../ZigBee2/components/drivers_nrf/nrf_soc_nosd",
+        "${workspaceFolder}/../ZigBee2/components/libraries/log/src",
+        "${workspaceFolder}/../ZigBee2/external/zboss/include/ha",
+        "${workspaceFolder}/../ZigBee2/external/zboss/zb_error",
+        "${workspaceFolder}/../ZigBee2/modules/nrfx/hal",
+        "${workspaceFolder}/../ZigBee2/external/zboss/include/osif",
+        "${workspaceFolder}/../ZigBee2/components/libraries/queue",
+        "${workspaceFolder}/../ZigBee2/integration/nrfx/legacy",
+        "${workspaceFolder}/../ZigBee2/components/libraries/fstorage",
+        "${workspaceFolder}/../ZigBee2/components/libraries/timer",
+        "${workspaceFolder}/../ZigBee2/components/libraries/button",
+        "${workspaceFolder}/../ZigBee2/components/libraries/bsp",
+        "${workspaceFolder}/../ZigBee2/components/boards",
+        "${workspaceFolder}/../ZigBee2/external/nRF-IEEE-802.15.4-radio-driver/src/fem",
+        "${workspaceFolder}/../ZigBee2/components/libraries/util"
+      ],
+      "defines": [
+        "BOARD_PCA10056",
+        "CONFIG_GPIO_AS_PINRESET",
+        "ENABLE_FEM",
+        "FLOAT_ABI_HARD",
+        "NRF52840_XXAA",
+        "ZB_TRACE_LEVEL=0",
+        "ZB_TRACE_MASK=0",
+        "__STATIC_INLINE=",
+        "ZB_ED_ROLE",
+        "ZB_ROUTER_ROLE",
+        "ZB_COORDINATOR_ROLE"
+      ],
+      "cStandard": "c11",
+      "cppStandard": "c++17"
+    }
+  ],
+  "version": 4
+}
