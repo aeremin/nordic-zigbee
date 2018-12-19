@@ -45,9 +45,17 @@
  * @brief Dimmer switch for HA profile implementation.
  */
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "zboss_api.h"
 #include "zb_mem_config_min.h"
 #include "zb_error_handler.h"
+
+#ifdef __cplusplus
+}
+#endif
 
 #include "app_timer.h"
 #include "bsp.h"
@@ -328,7 +336,7 @@ static zb_void_t find_light_bulb(zb_uint8_t param)
     zb_zdo_match_desc_param_t * p_req;
 
     /* Initialize pointers inside buffer and reserve space for zb_zdo_match_desc_param_t request */
-    UNUSED_RETURN_VALUE(ZB_BUF_INITIAL_ALLOC(p_buf, sizeof(zb_zdo_match_desc_param_t) + (1) * sizeof(zb_uint16_t), p_req));
+    p_req = (zb_zdo_match_desc_param_t*) zb_buf_initial_alloc(p_buf,  sizeof(zb_zdo_match_desc_param_t) + (1) * sizeof(zb_uint16_t));
 
     p_req->nwk_addr         = MATCH_DESC_REQ_ROLE;              // Send to devices specified by MATCH_DESC_REQ_ROLE
     p_req->addr_of_interest = MATCH_DESC_REQ_ROLE;              // Get responses from devices specified by MATCH_DESC_REQ_ROLE
