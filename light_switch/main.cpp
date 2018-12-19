@@ -506,6 +506,7 @@ static zb_void_t sleepy_device_setup(void)
  */
 void zboss_signal_handler(zb_uint8_t param)
 {
+    NRF_LOG_INFO("Entering zboss_signal_handler");
     zb_zdo_app_signal_hdr_t      * p_sg_p         = NULL;
     zb_zdo_signal_leave_params_t * p_leave_params = NULL;
     zb_zdo_app_signal_type_t       sig            = zb_get_app_signal(param, &p_sg_p);
@@ -515,7 +516,9 @@ void zboss_signal_handler(zb_uint8_t param)
     switch(sig)
     {
         case ZB_BDB_SIGNAL_DEVICE_FIRST_START:
+            NRF_LOG_INFO("ZB_BDB_SIGNAL_DEVICE_FIRST_START");
         case ZB_BDB_SIGNAL_DEVICE_REBOOT:
+            NRF_LOG_INFO("ZB_BDB_SIGNAL_DEVICE_REBOOT");
             if (status == RET_OK)
             {
                 NRF_LOG_INFO("Joined network successfully");
@@ -541,6 +544,7 @@ void zboss_signal_handler(zb_uint8_t param)
             break;
 
         case ZB_ZDO_SIGNAL_LEAVE:
+            NRF_LOG_INFO("ZB_ZDO_SIGNAL_LEAVE");
             if (status == RET_OK)
             {
                 bsp_board_led_off(ZIGBEE_NETWORK_STATE_LED);
@@ -555,6 +559,7 @@ void zboss_signal_handler(zb_uint8_t param)
             break;
 
         case ZB_COMMON_SIGNAL_CAN_SLEEP:
+            NRF_LOG_INFO("ZB_COMMON_SIGNAL_CAN_SLEEP");
             {
                 zb_zdo_signal_can_sleep_params_t *can_sleep_params = ZB_ZDO_SIGNAL_GET_PARAMS(p_sg_p, zb_zdo_signal_can_sleep_params_t);
                 NRF_LOG_INFO("Can sleep for %ld ms", can_sleep_params->sleep_tmo);
@@ -563,6 +568,7 @@ void zboss_signal_handler(zb_uint8_t param)
             break;
 
         case ZB_ZDO_SIGNAL_PRODUCTION_CONFIG_READY:
+            NRF_LOG_INFO("ZB_ZDO_SIGNAL_PRODUCTION_CONFIG_READY");
             if (status != RET_OK)
             {
                 NRF_LOG_WARNING("Production config is not present or invalid");
