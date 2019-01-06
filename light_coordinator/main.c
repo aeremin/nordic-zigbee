@@ -208,6 +208,8 @@ int main(void)
     log_init();
     leds_init();
 
+    NRF_LOG_INFO("Started light_coordinator, v003");
+
     /* Set ZigBee stack logging level and traffic dump subsystem. */
     ZB_SET_TRACE_LEVEL(ZIGBEE_TRACE_LEVEL);
     ZB_SET_TRACE_MASK(ZIGBEE_TRACE_MASK);

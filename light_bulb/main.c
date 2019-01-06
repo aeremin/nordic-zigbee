@@ -499,6 +499,8 @@ int main(void)
     log_init();
     leds_init();
 
+    NRF_LOG_INFO("Started light_bulb, v001");
+
     /* Set ZigBee stack logging level and traffic dump subsystem. */
     ZB_SET_TRACE_LEVEL(ZIGBEE_TRACE_LEVEL);
     ZB_SET_TRACE_MASK(ZIGBEE_TRACE_MASK);
@@ -533,10 +535,19 @@ int main(void)
     zb_err_code = zboss_start();
     ZB_ERROR_CHECK(zb_err_code);
 
+    bool join_logged = false;
     while(1)
     {
         zboss_main_loop_iteration();
         UNUSED_RETURN_VALUE(NRF_LOG_PROCESS());
+        if (zb_zdo_joined()) {
+            if (!join_logged) {
+                NRF_LOG_INFO("Joined network, OMG!");
+                join_logged = true;
+            }
+        } else {
+            // NRF_LOG_INFO("Haven't joined network yet :(");
+        }
     }
 }
 
