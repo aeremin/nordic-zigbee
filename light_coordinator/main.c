@@ -98,9 +98,17 @@ static zb_void_t steering_finished(zb_uint8_t param)
 }
 
 /**@brief Retry to form a Zigbee network. */
-static zb_void_t bdb_restart_top_level_commissioning(zb_uint8_t param)
+static zb_void_t RestartTopLevelCommisioning(zb_uint8_t unused_param)
 {
-    UNUSED_RETURN_VALUE(bdb_start_top_level_commissioning(ZB_BDB_NETWORK_STEERING));
+    // See https://devzone.nordicsemi.com/f/nordic-q-a/40474/zigbee-controller-and-osram-and-develco-smart-plugs/157433#157433
+    // and https://mmbnetworks.atlassian.net/wiki/spaces/SPRC2/pages/112909465/Trust+Center+Security+Policies.
+    // When pre-ZigBee 3.0 device joins ZigBee 3.0 coordinator, it doesn't do Key Exchange.
+    // Without enabling legacy device support, coordinator will forcefully remove joning device from network.
+    // Comment in zb_bdb_set_legacy_device_support is bullshit -  1 is ENABLE legacy support,
+    // DISABLE trust center (ZigBee coordinator) require key exchange.
+    zb_bdb_set_legacy_device_support(1);
+
+    ZB_COMM_STATUS_CHECK(bdb_start_top_level_commissioning(ZB_BDB_NETWORK_STEERING));
 }
 
 /**@brief ZigBee stack event handler.
@@ -113,7 +121,6 @@ void zboss_signal_handler(zb_uint8_t param)
     zb_zdo_app_signal_type_t sig = zb_get_app_signal(param, NULL);
     zb_ret_t                 status = ZB_GET_APP_SIGNAL_STATUS(param);
     zb_ret_t                 zb_err_code;
-    zb_bool_t                comm_status;
 
     switch(sig)
     {
@@ -123,15 +130,13 @@ void zboss_signal_handler(zb_uint8_t param)
             {
                 NRF_LOG_INFO("Device started OK. Start network steering.");
                 bsp_board_led_on(ZIGBEE_NETWORK_STATE_LED);
-                comm_status = bdb_start_top_level_commissioning(ZB_BDB_NETWORK_STEERING);
-                ZB_COMM_STATUS_CHECK(comm_status);
+                RestartTopLevelCommisioning(param);
             }
             else
             {
                 NRF_LOG_ERROR("Device startup failed. Status: %d. Retry network formation after 1 second.", status);
                 bsp_board_led_off(ZIGBEE_NETWORK_STATE_LED);
-                zb_err_code = ZB_SCHEDULE_ALARM(bdb_restart_top_level_commissioning, 0, ZB_TIME_ONE_SECOND);
-                ZB_ERROR_CHECK(zb_err_code);
+                ZB_ERROR_CHECK(zb_schedule_alarm(RestartTopLevelCommisioning, 0, ZB_TIME_ONE_SECOND));
             }
             break;
 
@@ -147,7 +152,7 @@ void zboss_signal_handler(zb_uint8_t param)
             {
                 NRF_LOG_INFO("Network steering failed to start. Status: %d. Retry network formation after 1 second.", status);
                 bsp_board_led_off(ZIGBEE_NETWORK_STATE_LED);
-                zb_err_code = ZB_SCHEDULE_ALARM(bdb_restart_top_level_commissioning, 0, ZB_TIME_ONE_SECOND);
+                zb_err_code = ZB_SCHEDULE_ALARM(RestartTopLevelCommisioning, 0, ZB_TIME_ONE_SECOND);
                 ZB_ERROR_CHECK(zb_err_code);
             }
             break;
@@ -156,6 +161,26 @@ void zboss_signal_handler(zb_uint8_t param)
             if (status != RET_OK)
             {
                 NRF_LOG_WARNING("Production config is not present or invalid");
+            }
+            break;
+
+        case ZB_ZDO_SIGNAL_DEVICE_ANNCE:
+            NRF_LOG_INFO("Received device announcement!");
+            zb_zdo_signal_device_annce_params_t* dev_annce_params = ZB_ZDO_SIGNAL_GET_PARAMS(sig, zb_zdo_signal_device_annce_params_t);
+            NRF_LOG_INFO("Joining device address: 0x%08x", dev_annce_params->device_short_addr);
+            if (status != RET_OK) {
+                NRF_LOG_WARNING("Something was wrong with the announcement: %d", status);
+            } else {
+                NRF_LOG_INFO("Device announcement is good");
+            }
+            break;
+
+        case ZB_NWK_SIGNAL_DEVICE_ASSOCIATED:
+            NRF_LOG_INFO("Received device association");
+            if (status != RET_OK) {
+                NRF_LOG_WARNING("Something was wrong with the device association: %d", status);
+            } else {
+                NRF_LOG_INFO("Device association is good");
             }
             break;
 
