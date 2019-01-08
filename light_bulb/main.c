@@ -397,6 +397,13 @@ static zb_void_t zcl_device_cb(zb_uint8_t param)
 
     switch (p_device_cb_param->device_cb_id)
     {
+        case ZB_ZCL_ON_OFF_WITH_EFFECT_VALUE_CB_ID:
+            NRF_LOG_INFO("Turning off. Additional data: effect_id: %d, effect_variant: %d",
+                p_device_cb_param->cb_param.on_off_set_effect_value_param.effect_id,
+                p_device_cb_param->cb_param.on_off_set_effect_value_param.effect_variant);
+            on_off_set_value(0);
+            break;
+
         case ZB_ZCL_LEVEL_CONTROL_SET_VALUE_CB_ID:
             NRF_LOG_INFO("Level control setting to %d", p_device_cb_param->cb_param.level_control_set_value_param.new_value);
             level_control_set_value(p_device_cb_param->cb_param.level_control_set_value_param.new_value);
