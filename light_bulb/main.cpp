@@ -507,9 +507,6 @@ void zboss_signal_handler(zb_uint8_t param)
  */
 int main(void)
 {
-    zb_ret_t       zb_err_code;
-    zb_ieee_addr_t ieee_addr;
-
     /* Initialize loging system and GPIOs. */
     log_init();
     leds_init();
@@ -525,6 +522,7 @@ int main(void)
     ZB_INIT("led_bulb");
 
     /* Set device address to the value read from FICR registers. */
+    zb_ieee_addr_t ieee_addr;
     zb_osif_get_ieee_eui64(ieee_addr);
     zb_set_long_address(ieee_addr);
 
@@ -547,13 +545,12 @@ int main(void)
     level_control_set_value(m_dev_ctx.level_control_attr.current_level);
 
     /** Start Zigbee Stack. */
-    zb_err_code = zboss_start();
-    ZB_ERROR_CHECK(zb_err_code);
+    ZB_ERROR_CHECK(zboss_start());
 
-    while(1)
+    while (true)
     {
         zboss_main_loop_iteration();
-        UNUSED_RETURN_VALUE(NRF_LOG_PROCESS());
+        NRF_LOG_PROCESS();
     }
 }
 
