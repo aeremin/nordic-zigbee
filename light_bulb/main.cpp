@@ -116,7 +116,7 @@ extern "C" {
 
 
 /* Basic cluster attributes. */
-typedef struct
+struct bulb_device_basic_attr_t
 {
     zb_uint8_t zcl_version;
     zb_uint8_t app_version;
@@ -128,49 +128,49 @@ typedef struct
     zb_uint8_t power_source;
     zb_char_t  location_id[17];
     zb_uint8_t ph_env;
-} bulb_device_basic_attr_t;
+};
 
 /* Identify cluster attributes. */
-typedef struct
+struct bulb_device_identify_attr_t
 {
     zb_uint16_t identify_time;
     zb_uint8_t  commission_state;
-} bulb_device_identify_attr_t;
+};
 
 /* ON/Off cluster attributes. */
-typedef struct
+struct bulb_device_on_off_attr_t
 {
     zb_bool_t   on_off;
     zb_bool_t   global_scene_ctrl;
     zb_uint16_t on_time;
     zb_uint16_t off_wait_time;
-} bulb_device_on_off_attr_t;
+};
 
 /* Level Control cluster attributes. */
-typedef struct
+struct bulb_device_level_control_attr_t
 {
     zb_uint8_t  current_level;
     zb_uint16_t remaining_time;
-} bulb_device_level_control_attr_t;
+};
 
 /* Scenes cluster attributes. */
-typedef struct
+struct bulb_device_scenes_attr_t
 {
     zb_uint8_t  scene_count;
     zb_uint8_t  current_scene;
     zb_uint8_t  scene_valid;
     zb_uint8_t  name_support;
     zb_uint16_t current_group;
-} bulb_device_scenes_attr_t;
+};
 
 /* Groups cluster attributes. */
-typedef struct
+struct bulb_device_groups_attr_t
 {
     zb_uint8_t name_support;
-} bulb_device_groups_attr_t;
+};
 
 /* Main application customizable context. Stores all settings and static values. */
-typedef struct
+struct bulb_device_ctx_t
 {
     bulb_device_basic_attr_t         basic_attr;
     bulb_device_identify_attr_t      identify_attr;
@@ -178,7 +178,7 @@ typedef struct
     bulb_device_groups_attr_t        groups_attr;
     bulb_device_on_off_attr_t        on_off_attr;
     bulb_device_level_control_attr_t level_control_attr;
-} bulb_device_ctx_t;
+};
 
 
 APP_PWM_INSTANCE(BULB_PWM_NAME, BULB_PWM_TIMER);
