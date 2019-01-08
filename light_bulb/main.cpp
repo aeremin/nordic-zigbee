@@ -45,11 +45,19 @@
  * @brief Dimmable light sample (HA profile)
  */
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "zboss_api.h"
 #include "zb_mem_config_med.h"
 #include "zb_ha_dimmable_light.h"
 #include "zb_error_handler.h"
 #include "zb_nrf52840_internal.h"
+
+#ifdef __cplusplus
+}
+#endif
 
 #include "boards.h"
 #include "app_pwm.h"
@@ -360,7 +368,7 @@ static void bulb_clusters_attr_init(void)
     ZB_ZCL_LEVEL_CONTROL_SET_LEVEL_VALUE(HA_DIMMABLE_LIGHT_ENDPOINT, m_dev_ctx.level_control_attr.current_level);
 }
 
-/**@brief Function which tries to sleep down the MCU 
+/**@brief Function which tries to sleep down the MCU
  *
  * Function which sleeps the MCU on the non-sleepy End Devices to optimize the power saving.
  * The weak definition inside the OSIF layer provides some minimal working template
@@ -401,7 +409,7 @@ static zb_void_t zcl_device_cb(zb_uint8_t param)
             NRF_LOG_INFO("Turning off. Additional data: effect_id: %d, effect_variant: %d",
                 p_device_cb_param->cb_param.on_off_set_effect_value_param.effect_id,
                 p_device_cb_param->cb_param.on_off_set_effect_value_param.effect_variant);
-            on_off_set_value(0);
+            on_off_set_value(ZB_FALSE);
             break;
 
         case ZB_ZCL_LEVEL_CONTROL_SET_VALUE_CB_ID:
