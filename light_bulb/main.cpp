@@ -114,6 +114,7 @@ extern "C" {
 #error Define ZB_ROUTER_ROLE to compile light bulb (Router) source code.
 #endif
 
+APP_PWM_INSTANCE(BULB_PWM_NAME, BULB_PWM_TIMER);
 
 /* Basic cluster attributes. */
 struct bulb_device_basic_attr_t
@@ -181,7 +182,6 @@ struct bulb_device_ctx_t
 };
 
 
-APP_PWM_INSTANCE(BULB_PWM_NAME, BULB_PWM_TIMER);
 static bulb_device_ctx_t m_dev_ctx;
 
 ZB_ZCL_DECLARE_IDENTIFY_ATTRIB_LIST_HA(identify_attr_list,
@@ -211,11 +211,19 @@ ZB_ZCL_DECLARE_BASIC_ATTRIB_LIST_HA_ADDS_FULL(basic_attr_list,
                                               &m_dev_ctx.basic_attr.ph_env);
 
 /* On/Off cluster attributes additions data */
-ZB_ZCL_DECLARE_ON_OFF_ATTRIB_LIST_TL(on_off_attr_list,
-                                      &m_dev_ctx.on_off_attr.on_off,
-                                      &m_dev_ctx.on_off_attr.global_scene_ctrl,
-                                      &m_dev_ctx.on_off_attr.on_time,
-                                      &m_dev_ctx.on_off_attr.off_wait_time);
+zb_uint16_t cluster_revision_on_off_attr_list = ZB_ZCL_CLUSTER_REVISION_DEFAULT;
+zb_zcl_attr_t on_off_attr_list [] = {
+{
+    ZB_ZCL_ATTR_GLOBAL_CLUSTER_REVISION_ID,
+    ZB_ZCL_ATTR_TYPE_U16,
+    ZB_ZCL_ATTR_ACCESS_READ_ONLY,
+    (zb_voidp_t) &(cluster_revision_on_off_attr_list)
+},
+ZB_SET_ATTR_DESCR_WITH_ZB_ZCL_ATTR_ON_OFF_ON_OFF_ID(&m_dev_ctx.on_off_attr.on_off),
+ZB_SET_ATTR_DESCR_WITH_ZB_ZCL_ATTR_ON_OFF_GLOBAL_SCENE_CONTROL(&m_dev_ctx.on_off_attr.global_scene_ctrl),
+ZB_SET_ATTR_DESCR_WITH_ZB_ZCL_ATTR_ON_OFF_ON_TIME( &m_dev_ctx.on_off_attr.on_time),
+ZB_SET_ATTR_DESCR_WITH_ZB_ZCL_ATTR_ON_OFF_OFF_WAIT_TIME(&m_dev_ctx.on_off_attr.off_wait_time),
+ZB_ZCL_FINISH_DECLARE_ATTRIB_LIST;
 
 ZB_ZCL_DECLARE_LEVEL_CONTROL_ATTRIB_LIST(level_control_attr_list,
                                          &m_dev_ctx.level_control_attr.current_level,
