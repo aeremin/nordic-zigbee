@@ -62,6 +62,7 @@ extern "C" {
 #include "boards.h"
 #include "app_pwm.h"
 
+#include "nrf_drv_rng.h"
 #include "nrf_log.h"
 #include "nrf_log_ctrl.h"
 #include "nrf_log_default_backends.h"
@@ -69,7 +70,7 @@ extern "C" {
 #define MAX_CHILDREN                      10                                    /**< The maximum amount of connected devices. Setting this value to 0 disables association to this device.  */
 #define IEEE_CHANNEL_MASK                 (1l << ZIGBEE_CHANNEL)                /**< Scan only one, predefined channel to find the coordinator. */
 #define HA_DIMMABLE_LIGHT_ENDPOINT        10                                    /**< Device endpoint, used to receive light controlling commands. */
-#define ERASE_PERSISTENT_CONFIG           ZB_FALSE                              /**< Do not erase NVRAM to save the network parameters after device reboot or power-off. */
+#define ERASE_PERSISTENT_CONFIG           ZB_TRUE                              /**< Do not erase NVRAM to save the network parameters after device reboot or power-off. */
 #define BULB_PWM_NAME                     PWM1                                  /**< PWM instance used to drive dimmable light bulb. */
 #define BULB_PWM_TIMER                    2                                     /**< Timer number used by PWM. */
 
@@ -538,6 +539,8 @@ int main(void)
     /* Set device address to the value read from FICR registers. */
     zb_ieee_addr_t ieee_addr;
     zb_osif_get_ieee_eui64(ieee_addr);
+    nrf_drv_rng_block_rand(ieee_addr, 3);
+    NRF_LOG_INFO("Last address bits: %d %d %d", ieee_addr[0], ieee_addr[1], ieee_addr[2]);
     zb_set_long_address(ieee_addr);
 
     /* Set static long IEEE address. */
