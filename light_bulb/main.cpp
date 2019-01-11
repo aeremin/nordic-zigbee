@@ -67,6 +67,8 @@ extern "C" {
 #include "nrf_log_ctrl.h"
 #include "nrf_log_default_backends.h"
 
+#include "on_off.h"
+
 #define MAX_CHILDREN                      10                                    /**< The maximum amount of connected devices. Setting this value to 0 disables association to this device.  */
 #define IEEE_CHANNEL_MASK                 (1l << ZIGBEE_CHANNEL)                /**< Scan only one, predefined channel to find the coordinator. */
 #define HA_DIMMABLE_LIGHT_ENDPOINT        10                                    /**< Device endpoint, used to receive light controlling commands. */
@@ -139,15 +141,6 @@ struct bulb_device_identify_attr_t
     zb_uint8_t  commission_state;
 };
 
-/* ON/Off cluster attributes. */
-struct bulb_device_on_off_attr_t
-{
-    zb_bool_t   on_off;
-    zb_bool_t   global_scene_ctrl;
-    zb_uint16_t on_time;
-    zb_uint16_t off_wait_time;
-};
-
 /* Level Control cluster attributes. */
 struct bulb_device_level_control_attr_t
 {
@@ -178,7 +171,6 @@ struct bulb_device_ctx_t
     bulb_device_identify_attr_t      identify_attr;
     bulb_device_scenes_attr_t        scenes_attr;
     bulb_device_groups_attr_t        groups_attr;
-    bulb_device_on_off_attr_t        on_off_attr;
     bulb_device_level_control_attr_t level_control_attr;
 };
 
@@ -210,27 +202,6 @@ ZB_ZCL_DECLARE_BASIC_ATTRIB_LIST_HA_ADDS_FULL(basic_attr_list,
                                               &m_dev_ctx.basic_attr.power_source,
                                               m_dev_ctx.basic_attr.location_id,
                                               &m_dev_ctx.basic_attr.ph_env);
-
-/* On/Off cluster attributes additions data */
-zb_uint16_t cluster_revision_on_off_attr_list = ZB_ZCL_CLUSTER_REVISION_DEFAULT;
-zb_zcl_attr_t on_off_attr_list [] = {
-    {
-        ZB_ZCL_ATTR_GLOBAL_CLUSTER_REVISION_ID,
-        ZB_ZCL_ATTR_TYPE_U16,
-        ZB_ZCL_ATTR_ACCESS_READ_ONLY,
-        (zb_voidp_t) &(cluster_revision_on_off_attr_list)
-    },
-    ZB_SET_ATTR_DESCR_WITH_ZB_ZCL_ATTR_ON_OFF_ON_OFF_ID(&m_dev_ctx.on_off_attr.on_off),
-    ZB_SET_ATTR_DESCR_WITH_ZB_ZCL_ATTR_ON_OFF_GLOBAL_SCENE_CONTROL(&m_dev_ctx.on_off_attr.global_scene_ctrl),
-    ZB_SET_ATTR_DESCR_WITH_ZB_ZCL_ATTR_ON_OFF_ON_TIME( &m_dev_ctx.on_off_attr.on_time),
-    ZB_SET_ATTR_DESCR_WITH_ZB_ZCL_ATTR_ON_OFF_OFF_WAIT_TIME(&m_dev_ctx.on_off_attr.off_wait_time),
-    {
-        ZB_ZCL_NULL_ID,
-        0,
-        0,
-        nullptr
-    }
-};
 
 ZB_ZCL_DECLARE_LEVEL_CONTROL_ATTRIB_LIST(level_control_attr_list,
                                          &m_dev_ctx.level_control_attr.current_level,
@@ -282,11 +253,11 @@ static void level_control_set_value(zb_uint16_t new_level)
     /* According to the table 7.3 of Home Automation Profile Specification v 1.2 rev 29, chapter 7.1.3. */
     if (new_level == 0)
     {
-        m_dev_ctx.on_off_attr.on_off = ZB_FALSE;
+        on_off_attributes.on_off = ZB_FALSE;
     }
     else
     {
-        m_dev_ctx.on_off_attr.on_off = ZB_TRUE;
+        on_off_attributes.on_off = ZB_TRUE;
     }
 }
 
@@ -296,7 +267,7 @@ static void level_control_set_value(zb_uint16_t new_level)
  */
 static void on_off_set_value(zb_bool_t on)
 {
-    m_dev_ctx.on_off_attr.on_off = on;
+    on_off_attributes.on_off = on;
 
     NRF_LOG_INFO("Set ON/OFF value: %i", on);
 
@@ -375,11 +346,11 @@ static void bulb_clusters_attr_init(void)
     m_dev_ctx.identify_attr.commission_state = ZB_ZCL_ATTR_IDENTIFY_COMMISSION_STATE_HA_ID_DEF_VALUE;
 
     /* On/Off cluster attributes data */
-    m_dev_ctx.on_off_attr.on_off            = (zb_bool_t)ZB_ZCL_ON_OFF_IS_ON;
+    on_off_attributes.on_off            = (zb_bool_t)ZB_ZCL_ON_OFF_IS_ON;
 
     m_dev_ctx.level_control_attr.current_level  = ZB_ZCL_LEVEL_CONTROL_LEVEL_MAX_VALUE;
     m_dev_ctx.level_control_attr.remaining_time = ZB_ZCL_LEVEL_CONTROL_REMAINING_TIME_DEFAULT_VALUE;
-    ZB_ZCL_LEVEL_CONTROL_SET_ON_OFF_VALUE(HA_DIMMABLE_LIGHT_ENDPOINT, m_dev_ctx.on_off_attr.on_off);
+    ZB_ZCL_LEVEL_CONTROL_SET_ON_OFF_VALUE(HA_DIMMABLE_LIGHT_ENDPOINT, on_off_attributes.on_off);
     ZB_ZCL_LEVEL_CONTROL_SET_LEVEL_VALUE(HA_DIMMABLE_LIGHT_ENDPOINT, m_dev_ctx.level_control_attr.current_level);
 }
 

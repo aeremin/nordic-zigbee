@@ -61,6 +61,7 @@ SRC_FILES += \
   $(SDK_ROOT)/modules/nrfx/drivers/src/nrfx_uart.c \
   $(SDK_ROOT)/modules/nrfx/drivers/src/nrfx_uarte.c \
   $(PROJ_DIR)/main.cpp \
+  $(PROJ_DIR)/on_off.cpp \
   $(SDK_ROOT)/modules/nrfx/mdk/system_nrf52840.c \
 
 # Include folders common to all targets
