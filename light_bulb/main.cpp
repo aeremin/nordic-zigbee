@@ -212,7 +212,7 @@ ZB_HA_DECLARE_DIMMABLE_LIGHT_CLUSTER_LIST(dimmable_light_clusters,
                                           identify_attr_list,
                                           groups_attr_list,
                                           scenes_attr_list,
-                                          on_off_attr_list,
+                                          OnOffCluster::GetInstance().on_off_attr_list,
                                           level_control_attr_list);
 
 ZB_HA_DECLARE_LIGHT_EP(dimmable_light_ep,
@@ -251,14 +251,7 @@ static void level_control_set_value(zb_uint16_t new_level)
     }
 
     /* According to the table 7.3 of Home Automation Profile Specification v 1.2 rev 29, chapter 7.1.3. */
-    if (new_level == 0)
-    {
-        on_off_attributes.on_off = ZB_FALSE;
-    }
-    else
-    {
-        on_off_attributes.on_off = ZB_TRUE;
-    }
+    OnOffCluster::GetInstance().SetOn(new_level == 0);
 }
 
 /**@brief Function for turning ON/OFF the light bulb.
@@ -267,7 +260,7 @@ static void level_control_set_value(zb_uint16_t new_level)
  */
 static void on_off_set_value(zb_bool_t on)
 {
-    on_off_attributes.on_off = on;
+    OnOffCluster::GetInstance().SetOn(on == ZB_TRUE);
 
     NRF_LOG_INFO("Set ON/OFF value: %i", on);
 
@@ -346,11 +339,10 @@ static void bulb_clusters_attr_init(void)
     m_dev_ctx.identify_attr.commission_state = ZB_ZCL_ATTR_IDENTIFY_COMMISSION_STATE_HA_ID_DEF_VALUE;
 
     /* On/Off cluster attributes data */
-    on_off_attributes.on_off            = (zb_bool_t)ZB_ZCL_ON_OFF_IS_ON;
+    OnOffCluster::GetInstance().Init(HA_DIMMABLE_LIGHT_ENDPOINT);
 
     m_dev_ctx.level_control_attr.current_level  = ZB_ZCL_LEVEL_CONTROL_LEVEL_MAX_VALUE;
     m_dev_ctx.level_control_attr.remaining_time = ZB_ZCL_LEVEL_CONTROL_REMAINING_TIME_DEFAULT_VALUE;
-    ZB_ZCL_LEVEL_CONTROL_SET_ON_OFF_VALUE(HA_DIMMABLE_LIGHT_ENDPOINT, on_off_attributes.on_off);
     ZB_ZCL_LEVEL_CONTROL_SET_LEVEL_VALUE(HA_DIMMABLE_LIGHT_ENDPOINT, m_dev_ctx.level_control_attr.current_level);
 }
 
