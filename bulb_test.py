@@ -50,6 +50,9 @@ class HueHelper:
         lights.append((key, r.json()[key]))
     return lights
 
+  def getColorLights(self):
+    return [light for light in self.getAllLights() if 'olor' in light[1]['type']]
+
   def removeAllLights(self):
     for id, _ in self.getAllLights():
       r = requests.delete(self.baseUrl() + '/lights/' + id)
@@ -60,6 +63,12 @@ class HueHelper:
     r.raise_for_status()
     time.sleep(0.5)
     r = requests.put(self.baseUrl() + '/lights/%s/state' % id, json={'on': True})
+    r.raise_for_status()
+
+  def SetVioletColor(self, id):
+    r = requests.put(self.baseUrl() + '/lights/%s/state' % id, json={'on': True})
+    r.raise_for_status()
+    r = requests.put(self.baseUrl() + '/lights/%s/state' % id, json={'hue': 56100, 'sat': 254})
     r.raise_for_status()
 
 def waitUntil(somepredicate, timeout=5, period=1):
@@ -95,6 +104,13 @@ class TestLightIsDiscoverable(unittest.TestCase):
     self.helper.turnOfAndOn(id)
     waitUntilStringInUart('ON/OFF')
 
+  def test_04_ColorLightDiscoveredByHue(self):
+    self.assertTrue(waitUntil(self.helper.getColorLights))
+
+  def test_05_SetColor(self):
+    id, _ = self.helper.getColorLights()[0]
+    self.helper.SetVioletColor(id)
+    waitUntilStringInUart('Get request to change color to hue=56100, saturation=254')
 
 
 if __name__ == '__main__':

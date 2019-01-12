@@ -40,7 +40,8 @@
         "${workspaceFolder}/../ZigBee2/components/libraries/bsp",
         "${workspaceFolder}/../ZigBee2/components/boards",
         "${workspaceFolder}/../ZigBee2/external/nRF-IEEE-802.15.4-radio-driver/src/fem",
-        "${workspaceFolder}/../ZigBee2/components/libraries/util"
+        "${workspaceFolder}/../ZigBee2/components/libraries/util",
+        "${workspaceFolder}/../ZigBee2/components/zigbee/common"
       ],
       "defines": [
         "BOARD_PCA10056",

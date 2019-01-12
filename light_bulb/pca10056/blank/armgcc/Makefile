@@ -98,6 +98,7 @@ INC_FOLDERS += \
   $(SDK_ROOT)/integration/nrfx/legacy \
   $(SDK_ROOT)/components/libraries/fstorage \
   $(SDK_ROOT)/components/boards \
+  $(SDK_ROOT)/components/zigbee/common \
   $(SDK_ROOT)/external/nRF-IEEE-802.15.4-radio-driver/src/fem \
   $(SDK_ROOT)/components/libraries/util \
 
