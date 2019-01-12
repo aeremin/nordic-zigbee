@@ -343,7 +343,7 @@ static void zb_update_color_values(bulb_device_ep_ctx_t * p_ep_dev_ctx)
 }
 
 void ble_thingy_master_update_led(led_params_t* p_led_params) {
-    NRF_LOG_INFO("Setting color to %d %d %d", p_led_params->r_value, p_led_params->g_value, p_led_params->r_value);
+    NRF_LOG_INFO("Setting color to %d %d %d", p_led_params->r_value, p_led_params->g_value, p_led_params->b_value);
 }
 
 /**@brief Function for changing the hue of the light bulb.
