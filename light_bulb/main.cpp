@@ -704,9 +704,6 @@ static zb_void_t zcl_device_cb(zb_uint8_t param)
 
     if (p_device_cb_param->endpoint == kColorLightEndpoint) {
         auto* p_device_ep_ctx = &zb_ep_dev_ctx;
-        NRF_LOG_INFO("Current hue %d, enhanced current hue: %d ",
-            p_device_ep_ctx->p_device_ctx->color_control_attr.set_color_info.current_hue,
-            p_device_ep_ctx->p_device_ctx->color_control_attr.set_color_info.enhanced_current_hue);
 
         /* Set default response value. */
         p_device_cb_param->status = RET_OK;
@@ -730,9 +727,6 @@ static zb_void_t zcl_device_cb(zb_uint8_t param)
                 {
                     const zb_uint8_t cluster_id = p_device_cb_param->cb_param.set_attr_value_param.cluster_id;
                     const zb_uint8_t attr_id    = p_device_cb_param->cb_param.set_attr_value_param.attr_id;
-                    NRF_LOG_INFO("Set Attribute callback. Cluster: %d, attribute: %d. Value = %d",
-                        cluster_id, attr_id, p_device_cb_param->cb_param.set_attr_value_param.values.data16);
-
                     if (cluster_id == ZB_ZCL_CLUSTER_ID_ON_OFF)
                     {
                         uint8_t value = p_device_cb_param->cb_param.set_attr_value_param.values.data8;
