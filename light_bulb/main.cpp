@@ -376,6 +376,60 @@ static void color_control_set_value_saturation(bulb_device_ep_ctx_t * p_ep_dev_c
     NRF_LOG_INFO("Set color saturation value: %i on endpoint: %hu", new_saturation, p_ep_dev_ctx->ep_id);
 }
 
+led_params_t FromXY(zb_uint16_t input_x, zb_uint16_t input_y) {
+    float x = float(input_x) / 0xffff;
+    float y = float(input_y) / 0xffff;
+    float z = 1.0f - x - y;
+    float Y = 1.0f; // The given brightness value
+    float X = (Y / y) * x;
+    float Z = (Y / y) * z;
+    float r = X * 3.2406f - Y * 1.5372f - Z * 0.4986f;
+    float g = -X * 0.9689f + Y * 1.8758f + Z * 0.0415f;
+    float b = X * 0.0557f - Y * 0.2040f + Z * 1.0570f;
+
+    if (r > b && r > g && r > 1.0f) {
+        // red is too big
+        g = g / r;
+        b = b / r;
+        r = 1.0f;
+    }
+    else if (g > b && g > r && g > 1.0f) {
+        // green is too big
+        r = r / g;
+        b = b / g;
+        g = 1.0f;
+    }
+    else if (b > r && b > g && b > 1.0f) {
+        // blue is too big
+        r = r / b;
+        g = g / b;
+        b = 1.0f;
+    }
+
+    r = r <= 0.0031308f ? 12.92f * r : (1.0f + 0.055f) * pow(r, (1.0f / 2.4f)) - 0.055f;
+    g = g <= 0.0031308f ? 12.92f * g : (1.0f + 0.055f) * pow(g, (1.0f / 2.4f)) - 0.055f;
+    b = b <= 0.0031308f ? 12.92f * b : (1.0f + 0.055f) * pow(b, (1.0f / 2.4f)) - 0.055f;
+    NRF_LOG_INFO("FromXY: input_x=%d, input_y=%d, x=%.4f, y=%.4f", input_x, input_y, x, y);
+    NRF_LOG_INFO("Result: r=%d, g=%d, b=%d", uint8_t(r * 256), uint8_t(g * 256), uint8_t(b * 256));
+    return {uint8_t(r * 256), uint8_t(g * 256), uint8_t(b * 256)};
+}
+
+static void color_control_set_value_x(bulb_device_ep_ctx_t * p_ep_dev_ctx, zb_uint16_t new_x)
+{
+    p_ep_dev_ctx->p_device_ctx->color_control_attr.set_color_info.current_X = new_x;
+    p_ep_dev_ctx->led_params = FromXY(p_ep_dev_ctx->p_device_ctx->color_control_attr.set_color_info.current_X,
+                                      p_ep_dev_ctx->p_device_ctx->color_control_attr.set_color_info.current_Y);
+    ble_thingy_master_update_led(&p_ep_dev_ctx->led_params);
+}
+
+static void color_control_set_value_y(bulb_device_ep_ctx_t * p_ep_dev_ctx, zb_uint16_t new_y)
+{
+    p_ep_dev_ctx->p_device_ctx->color_control_attr.set_color_info.current_Y = new_y;
+    p_ep_dev_ctx->led_params = FromXY(p_ep_dev_ctx->p_device_ctx->color_control_attr.set_color_info.current_X,
+                                      p_ep_dev_ctx->p_device_ctx->color_control_attr.set_color_info.current_Y);
+    ble_thingy_master_update_led(&p_ep_dev_ctx->led_params);
+}
+
 /**@brief Function for setting the light bulb brightness.
  *
  * @param[IN] p_ep_dev_ctx Pointer to endpoint device ctx.
@@ -393,6 +447,7 @@ static void level_control_set_value(bulb_device_ep_ctx_t * p_ep_dev_ctx, zb_uint
     /* According to the table 7.3 of Home Automation Profile Specification v 1.2 rev 29, chapter 7.1.3. */
     p_ep_dev_ctx->p_device_ctx->on_off_attr.on_off = (new_level ? ZB_TRUE : ZB_FALSE);
 }
+
 
 /**@brief Function for turning ON/OFF the light bulb.
  *
@@ -641,14 +696,15 @@ zb_void_t zb_osif_go_idle(zb_void_t)
  */
 static zb_void_t zcl_device_cb(zb_uint8_t param)
 {
-    zb_uint8_t                       cluster_id;
-    zb_uint8_t                       attr_id;
     zb_buf_t                       * p_buffer = ZB_BUF_FROM_REF(param);
     zb_zcl_device_callback_param_t * p_device_cb_param = ZB_GET_BUF_PARAM(p_buffer, zb_zcl_device_callback_param_t);
 
     if (p_device_cb_param->endpoint == kColorLightEndpoint) {
         auto* p_device_ep_ctx = &zb_ep_dev_ctx;
-        NRF_LOG_INFO("Received new color light callback! ZCL callback %hd", p_device_cb_param->device_cb_id);
+        NRF_LOG_INFO("Current hue %d, enhanced current hue: %d ",
+            p_device_ep_ctx->p_device_ctx->color_control_attr.set_color_info.current_hue,
+            p_device_ep_ctx->p_device_ctx->color_control_attr.set_color_info.enhanced_current_hue);
+
         /* Set default response value. */
         p_device_cb_param->status = RET_OK;
 
@@ -668,62 +724,68 @@ static zb_void_t zcl_device_cb(zb_uint8_t param)
                 break;
 
             case ZB_ZCL_SET_ATTR_VALUE_CB_ID:
-                cluster_id = p_device_cb_param->cb_param.set_attr_value_param.cluster_id;
-                attr_id    = p_device_cb_param->cb_param.set_attr_value_param.attr_id;
-                NRF_LOG_INFO("Set Attribute callback. Cluster: %d, attribute: %d", cluster_id);
-
-                if (cluster_id == ZB_ZCL_CLUSTER_ID_ON_OFF)
                 {
-                    uint8_t value = p_device_cb_param->cb_param.set_attr_value_param.values.data8;
+                    const zb_uint8_t cluster_id = p_device_cb_param->cb_param.set_attr_value_param.cluster_id;
+                    const zb_uint8_t attr_id    = p_device_cb_param->cb_param.set_attr_value_param.attr_id;
+                    NRF_LOG_INFO("Set Attribute callback. Cluster: %d, attribute: %d. Value = %d",
+                        cluster_id, attr_id, p_device_cb_param->cb_param.set_attr_value_param.values.data16);
 
-                    NRF_LOG_INFO("on/off attribute setting to %hd", value);
-                    if (attr_id == ZB_ZCL_ATTR_ON_OFF_ON_OFF_ID)
+                    if (cluster_id == ZB_ZCL_CLUSTER_ID_ON_OFF)
                     {
-                        on_off_set_value(p_device_ep_ctx, (zb_bool_t)value);
-                    }
-                }
-                else if (cluster_id == ZB_ZCL_CLUSTER_ID_LEVEL_CONTROL)
-                {
-                    uint16_t value = p_device_cb_param->cb_param.set_attr_value_param.values.data16;
+                        uint8_t value = p_device_cb_param->cb_param.set_attr_value_param.values.data8;
 
-                    NRF_LOG_INFO("level control attribute setting to %hd", value);
-                    if (attr_id == ZB_ZCL_ATTR_LEVEL_CONTROL_CURRENT_LEVEL_ID)
-                    {
-                        level_control_set_value(p_device_ep_ctx, value);
+                        NRF_LOG_INFO("on/off attribute setting to %hd", value);
+                        if (attr_id == ZB_ZCL_ATTR_ON_OFF_ON_OFF_ID)
+                        {
+                            on_off_set_value(p_device_ep_ctx, (zb_bool_t)value);
+                        }
                     }
-                }
-                else if (cluster_id == ZB_ZCL_CLUSTER_ID_COLOR_CONTROL)
-                {
-                    if (p_device_ep_ctx->p_device_ctx->color_control_attr.set_color_info.remaining_time <= 1)
+                    else if (cluster_id == ZB_ZCL_CLUSTER_ID_LEVEL_CONTROL)
                     {
                         uint16_t value = p_device_cb_param->cb_param.set_attr_value_param.values.data16;
 
-                        switch (attr_id)
+                        NRF_LOG_INFO("level control attribute setting to %hd", value);
+                        if (attr_id == ZB_ZCL_ATTR_LEVEL_CONTROL_CURRENT_LEVEL_ID)
                         {
-                            case ZB_ZCL_ATTR_COLOR_CONTROL_CURRENT_HUE_ID:
-                                color_control_set_value_hue(p_device_ep_ctx, value);
-                                break;
-
-                            case ZB_ZCL_ATTR_COLOR_CONTROL_CURRENT_SATURATION_ID:
-                                color_control_set_value_saturation(p_device_ep_ctx, value);
-                                break;
-
-                            default:
-                                NRF_LOG_INFO("Unused attribute");
-                                break;
+                            level_control_set_value(p_device_ep_ctx, value);
                         }
                     }
+                    else if (cluster_id == ZB_ZCL_CLUSTER_ID_COLOR_CONTROL || cluster_id == ZB_ZCL_CLUSTER_ID_BASIC) // Why ZB_ZCL_CLUSTER_ID_BASIC?!
+                    {
+                        // TODO: Ideally, we should do smooth animation instead of waiting
+                        // and then switching to final state.
+                        if (p_device_ep_ctx->p_device_ctx->color_control_attr.set_color_info.remaining_time <= 1)
+                        {
+                            const auto& values = p_device_cb_param->cb_param.set_attr_value_param.values;
+                            switch (attr_id)
+                            {
+                                case ZB_ZCL_ATTR_COLOR_CONTROL_CURRENT_HUE_ID:
+                                    color_control_set_value_hue(p_device_ep_ctx, values.data16);
+                                    break;
+
+                                case ZB_ZCL_ATTR_COLOR_CONTROL_CURRENT_SATURATION_ID:
+                                    color_control_set_value_saturation(p_device_ep_ctx, values.data8);
+                                    break;
+
+                                case ZB_ZCL_ATTR_COLOR_CONTROL_CURRENT_X_ID:
+                                    color_control_set_value_x(p_device_ep_ctx, values.data16);
+                                    break;
+
+                                case ZB_ZCL_ATTR_COLOR_CONTROL_CURRENT_Y_ID:
+                                    color_control_set_value_y(p_device_ep_ctx, values.data16);
+                                    break;
+
+                                default:
+                                    NRF_LOG_WARNING("Got request to change unexpected attribute");
+                                    break;
+                            }
+                        }
+                    }
+                    else {
+                        NRF_LOG_WARNING("Unhandled cluster_id: %d", cluster_id);
+                    }
+                    break;
                 }
-                else if (cluster_id == ZB_ZCL_CLUSTER_ID_BASIC) {
-                    // Do nothing - prevent spam logging below
-                    // TODO: figure out if we need to do something
-                }
-                else
-                {
-                    /* Other clusters can be processed here */
-                    NRF_LOG_INFO("Unhandled cluster attribute id: %d", cluster_id);
-                }
-                break;
 
             default:
                 p_device_cb_param->status = RET_ERROR;
@@ -756,36 +818,37 @@ static zb_void_t zcl_device_cb(zb_uint8_t param)
             level_control_set_value(p_device_cb_param->cb_param.level_control_set_value_param.new_value);
             break;
 
-        case ZB_ZCL_SET_ATTR_VALUE_CB_ID:
-            cluster_id = p_device_cb_param->cb_param.set_attr_value_param.cluster_id;
-            attr_id    = p_device_cb_param->cb_param.set_attr_value_param.attr_id;
+        case ZB_ZCL_SET_ATTR_VALUE_CB_ID: {
+                const zb_uint8_t cluster_id = p_device_cb_param->cb_param.set_attr_value_param.cluster_id;
+                const zb_uint8_t attr_id    = p_device_cb_param->cb_param.set_attr_value_param.attr_id;
 
-            if (cluster_id == ZB_ZCL_CLUSTER_ID_ON_OFF)
-            {
-                uint8_t value = p_device_cb_param->cb_param.set_attr_value_param.values.data8;
-
-                NRF_LOG_INFO("on/off attribute setting to %hd", value);
-                if (attr_id == ZB_ZCL_ATTR_ON_OFF_ON_OFF_ID)
+                if (cluster_id == ZB_ZCL_CLUSTER_ID_ON_OFF)
                 {
-                    on_off_set_value((zb_bool_t) value);
-                }
-            }
-            else if (cluster_id == ZB_ZCL_CLUSTER_ID_LEVEL_CONTROL)
-            {
-                uint16_t value = p_device_cb_param->cb_param.set_attr_value_param.values.data16;
+                    uint8_t value = p_device_cb_param->cb_param.set_attr_value_param.values.data8;
 
-                NRF_LOG_INFO("level control attribute setting to %hd", value);
-                if (attr_id == ZB_ZCL_ATTR_LEVEL_CONTROL_CURRENT_LEVEL_ID)
-                {
-                    level_control_set_value(value);
+                    NRF_LOG_INFO("on/off attribute setting to %hd", value);
+                    if (attr_id == ZB_ZCL_ATTR_ON_OFF_ON_OFF_ID)
+                    {
+                        on_off_set_value((zb_bool_t) value);
+                    }
                 }
+                else if (cluster_id == ZB_ZCL_CLUSTER_ID_LEVEL_CONTROL)
+                {
+                    uint16_t value = p_device_cb_param->cb_param.set_attr_value_param.values.data16;
+
+                    NRF_LOG_INFO("level control attribute setting to %hd", value);
+                    if (attr_id == ZB_ZCL_ATTR_LEVEL_CONTROL_CURRENT_LEVEL_ID)
+                    {
+                        level_control_set_value(value);
+                    }
+                }
+                else
+                {
+                    /* Other clusters can be processed here */
+                    NRF_LOG_INFO("Unhandled cluster attribute id: %d", cluster_id);
+                }
+                break;
             }
-            else
-            {
-                /* Other clusters can be processed here */
-                NRF_LOG_INFO("Unhandled cluster attribute id: %d", cluster_id);
-            }
-            break;
 
         default:
             p_device_cb_param->status = RET_ERROR;
@@ -842,61 +905,6 @@ void zboss_signal_handler(zb_uint8_t param)
     }
 }
 
-
-led_params_t FromXY(zb_uint16_t x, zb_uint16_t y) {
-    float z = 1.0f - float(x) / (1 << 16) - float(y) / (1 << 16);
-    float Y = 1.0f; // The given brightness value
-    float X = (Y / y) * x;
-    float Z = (Y / y) * z;
-    float r =  X * 1.656492f - Y * 0.354851f - Z * 0.255038f;
-    float g = -X * 0.707196f + Y * 1.655397f + Z * 0.036152f;
-    float b =  X * 0.051713f - Y * 0.121364f + Z * 1.011530f;
-    r = r <= 0.0031308f ? 12.92f * r : (1.0f + 0.055f) * pow(r, (1.0f / 2.4f)) - 0.055f;
-    g = g <= 0.0031308f ? 12.92f * g : (1.0f + 0.055f) * pow(g, (1.0f / 2.4f)) - 0.055f;
-    b = b <= 0.0031308f ? 12.92f * b : (1.0f + 0.055f) * pow(b, (1.0f / 2.4f)) - 0.055f;
-    return {uint8_t(r * 256), uint8_t(g * 256), uint8_t(b * 256)};
-}
-
-zb_uint8_t my_handler(zb_uint8_t param) {
-    zb_buf_t *zcl_cmd_buf = (zb_buf_t *)ZB_BUF_FROM_REF(param);
-    zb_zcl_parsed_hdr_t *cmd_info = ZB_GET_BUF_PARAM(zcl_cmd_buf, zb_zcl_parsed_hdr_t);
-    if (cmd_info->cmd_direction == ZB_ZCL_FRAME_DIRECTION_TO_SRV) {
-        // NRF_LOG_INFO("Command to server");
-        if (!cmd_info->is_common_command) {
-            NRF_LOG_INFO("Get cluster-specific command. Cluster ID = %x, command ID = %x", cmd_info->cluster_id, cmd_info->cmd_id);
-            if (cmd_info->cluster_id == 0x300 &&  cmd_info->cmd_id == ZB_ZCL_CMD_COLOR_CONTROL_MOVE_TO_COLOR) {
-                zb_zcl_color_control_move_to_color_req_t req;
-                zb_zcl_parse_status_t status;
-                ZB_ZCL_COLOR_CONTROL_GET_MOVE_TO_COLOR_REQ(&req, zcl_cmd_buf, status)
-                if (status == ZB_ZCL_PARSE_STATUS_FAILURE) {
-                    NRF_LOG_ERROR("Failed to parse request");
-                } else {
-                    NRF_LOG_INFO("Get request to change color to x=%d, y=%d, time=%d", req.color_x, req.color_y, req.transition_time);
-                    auto p = FromXY(req.color_x, req.color_y);
-                    NRF_LOG_INFO("RGB: %d %d %d", p.r_value, p.g_value, p.b_value);
-                }
-            }
-            if (cmd_info->cluster_id == 0x300 &&  cmd_info->cmd_id == ZB_ZCL_CMD_COLOR_CONTROL_ENHANCED_MOVE_TO_HUE_SATURATION) {
-                zb_zcl_color_control_enhanced_move_to_hue_saturation_req_t req;
-                zb_zcl_parse_status_t status;
-                ZB_ZCL_COLOR_CONTROL_GET_ENHANCED_MOVE_TO_HUE_SATURATION_REQ(&req, zcl_cmd_buf, status)
-                if (status == ZB_ZCL_PARSE_STATUS_FAILURE) {
-                    NRF_LOG_ERROR("Failed to parse request");
-                } else {
-                    NRF_LOG_INFO("Get request to change color to hue=%d, saturation=%d, time=%d", req.enhanced_hue, req.saturation, req.transition_time);
-                    color_control_set_value_hue(&zb_ep_dev_ctx, req.enhanced_hue);
-                    color_control_set_value_saturation(&zb_ep_dev_ctx, req.saturation);
-                }
-            }
-        }
-    } else if (cmd_info->cmd_direction == ZB_ZCL_FRAME_DIRECTION_TO_CLI) {
-        NRF_LOG_INFO("Command to client");
-    } else {
-        NRF_LOG_WARNING("Unexpected command direction");
-    }
-    return ZB_FALSE;
-}
-
 /**@brief Function for application main entry.
  */
 int main(void)
@@ -936,8 +944,6 @@ int main(void)
 
     /* Register dimmer switch device context (endpoints). */
     ZB_AF_REGISTER_DEVICE_CTX(&double_light_ctx);
-
-    ZB_AF_SET_ENDPOINT_HANDLER(kColorLightEndpoint, my_handler);
 
     bulb_clusters_attr_init();
     level_control_set_value(m_dev_ctx.level_control_attr.current_level);

@@ -65,10 +65,10 @@ class HueHelper:
     r = requests.put(self.baseUrl() + '/lights/%s/state' % id, json={'on': True})
     r.raise_for_status()
 
-  def SetVioletColor(self, id):
+  def SetGreenColor(self, id):
     r = requests.put(self.baseUrl() + '/lights/%s/state' % id, json={'on': True})
     r.raise_for_status()
-    r = requests.put(self.baseUrl() + '/lights/%s/state' % id, json={'hue': 56100, 'sat': 254})
+    r = requests.put(self.baseUrl() + '/lights/%s/state' % id, json={'xy': [0.3, 0.6]})
     r.raise_for_status()
 
 def waitUntil(somepredicate, timeout=5, period=1):
@@ -109,8 +109,8 @@ class TestLightIsDiscoverable(unittest.TestCase):
 
   def test_05_SetColor(self):
     id, _ = self.helper.getColorLights()[0]
-    self.helper.SetVioletColor(id)
-    waitUntilStringInUart('Get request to change color to hue=56100, saturation=254')
+    self.helper.SetGreenColor(id)
+    waitUntilStringInUart('0 255 0')
 
 
 if __name__ == '__main__':
