@@ -462,7 +462,7 @@ static void on_off_set_value(bulb_device_ep_ctx_t * p_ep_dev_ctx, zb_bool_t on)
     p_ep_dev_ctx->p_device_ctx->on_off_attr.on_off = on;
 
     NRF_LOG_INFO("Set ON/OFF value: %i on endpoint: %hu", on, p_ep_dev_ctx->ep_id);
-    /*
+
     if (on)
     {
         level_control_set_value(p_ep_dev_ctx, p_ep_dev_ctx->p_device_ctx->level_control_attr.current_level);
@@ -474,7 +474,6 @@ static void on_off_set_value(bulb_device_ep_ctx_t * p_ep_dev_ctx, zb_bool_t on)
         p_ep_dev_ctx->led_params.b_value = 0;
         ble_thingy_master_update_led(&p_ep_dev_ctx->led_params);
     }
-    */
 }
 
 /**@brief Function for initializing clusters attributes.
