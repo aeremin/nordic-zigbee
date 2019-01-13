@@ -376,11 +376,11 @@ static void color_control_set_value_saturation(bulb_device_ep_ctx_t * p_ep_dev_c
     NRF_LOG_INFO("Set color saturation value: %i on endpoint: %hu", new_saturation, p_ep_dev_ctx->ep_id);
 }
 
-led_params_t FromXY(zb_uint16_t input_x, zb_uint16_t input_y) {
+led_params_t ConvertXyToRgb(zb_uint16_t input_x, zb_uint16_t input_y) {
     float x = float(input_x) / 0xffff;
     float y = float(input_y) / 0xffff;
     float z = 1.0f - x - y;
-    float Y = 1.0f; // The given brightness value
+    float Y = 1.0f; // Brightness. TODO: Use value from level control cluster?
     float X = (Y / y) * x;
     float Z = (Y / y) * z;
     float r = X * 3.2406f - Y * 1.5372f - Z * 0.4986f;
@@ -409,25 +409,28 @@ led_params_t FromXY(zb_uint16_t input_x, zb_uint16_t input_y) {
     r = r <= 0.0031308f ? 12.92f * r : (1.0f + 0.055f) * pow(r, (1.0f / 2.4f)) - 0.055f;
     g = g <= 0.0031308f ? 12.92f * g : (1.0f + 0.055f) * pow(g, (1.0f / 2.4f)) - 0.055f;
     b = b <= 0.0031308f ? 12.92f * b : (1.0f + 0.055f) * pow(b, (1.0f / 2.4f)) - 0.055f;
-    NRF_LOG_INFO("FromXY: input_x=%d, input_y=%d, x=%.4f, y=%.4f", input_x, input_y, x, y);
-    NRF_LOG_INFO("Result: r=%d, g=%d, b=%d", uint8_t(r * 256), uint8_t(g * 256), uint8_t(b * 256));
-    return {uint8_t(r * 256), uint8_t(g * 256), uint8_t(b * 256)};
+    return { uint8_t(r * 256), uint8_t(g * 256), uint8_t(b * 256) };
 }
 
-static void color_control_set_value_x(bulb_device_ep_ctx_t * p_ep_dev_ctx, zb_uint16_t new_x)
-{
-    p_ep_dev_ctx->p_device_ctx->color_control_attr.set_color_info.current_X = new_x;
-    p_ep_dev_ctx->led_params = FromXY(p_ep_dev_ctx->p_device_ctx->color_control_attr.set_color_info.current_X,
-                                      p_ep_dev_ctx->p_device_ctx->color_control_attr.set_color_info.current_Y);
+void UpdateStateFromXy(zb_uint8_t) {
+    auto* p_ep_dev_ctx = &zb_ep_dev_ctx;
+    p_ep_dev_ctx->led_params = ConvertXyToRgb(p_ep_dev_ctx->p_device_ctx->color_control_attr.set_color_info.current_X,
+                                              p_ep_dev_ctx->p_device_ctx->color_control_attr.set_color_info.current_Y);
     ble_thingy_master_update_led(&p_ep_dev_ctx->led_params);
 }
 
-static void color_control_set_value_y(bulb_device_ep_ctx_t * p_ep_dev_ctx, zb_uint16_t new_y)
+void color_control_set_value_x(bulb_device_ep_ctx_t * p_ep_dev_ctx)
 {
-    p_ep_dev_ctx->p_device_ctx->color_control_attr.set_color_info.current_Y = new_y;
-    p_ep_dev_ctx->led_params = FromXY(p_ep_dev_ctx->p_device_ctx->color_control_attr.set_color_info.current_X,
-                                      p_ep_dev_ctx->p_device_ctx->color_control_attr.set_color_info.current_Y);
-    ble_thingy_master_update_led(&p_ep_dev_ctx->led_params);
+    // For whatever reason, ZBoss updates set_color_info.current_X and set_color_info.current_Y
+    // after this callback is called (not before!). So we need to schedule an alarm.
+    ZB_SCHEDULE_ALARM(UpdateStateFromXy, /* unused */ 0, /* ASAP */ 1);
+}
+
+void color_control_set_value_y(bulb_device_ep_ctx_t * p_ep_dev_ctx)
+{
+    // For whatever reason, ZBoss updates set_color_info.current_X and set_color_info.current_Y
+    // after this callback is called (not before!). So we need to schedule an alarm.
+    ZB_SCHEDULE_ALARM(UpdateStateFromXy, /* unused */ 0, /* ASAP */ 1);
 }
 
 /**@brief Function for setting the light bulb brightness.
@@ -768,11 +771,11 @@ static zb_void_t zcl_device_cb(zb_uint8_t param)
                                     break;
 
                                 case ZB_ZCL_ATTR_COLOR_CONTROL_CURRENT_X_ID:
-                                    color_control_set_value_x(p_device_ep_ctx, values.data16);
+                                    color_control_set_value_x(p_device_ep_ctx);
                                     break;
 
                                 case ZB_ZCL_ATTR_COLOR_CONTROL_CURRENT_Y_ID:
-                                    color_control_set_value_y(p_device_ep_ctx, values.data16);
+                                    color_control_set_value_y(p_device_ep_ctx);
                                     break;
 
                                 default:
