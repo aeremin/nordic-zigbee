@@ -34,6 +34,8 @@ SRC_FILES += \
   $(SDK_ROOT)/components/libraries/util/nrf_assert.c \
   $(SDK_ROOT)/components/libraries/atomic/nrf_atomic.c \
   $(SDK_ROOT)/components/libraries/balloc/nrf_balloc.c \
+  $(SDK_ROOT)/components/libraries/serial/nrf_serial.c \
+  $(SDK_ROOT)/components/libraries/timer/app_timer.c \
   $(SDK_ROOT)/external/fprintf/nrf_fprintf.c \
   $(SDK_ROOT)/external/fprintf/nrf_fprintf_format.c \
   $(SDK_ROOT)/components/libraries/fstorage/nrf_fstorage.c \
@@ -100,7 +102,11 @@ INC_FOLDERS += \
   $(SDK_ROOT)/components/boards \
   $(SDK_ROOT)/components/zigbee/common \
   $(SDK_ROOT)/external/nRF-IEEE-802.15.4-radio-driver/src/fem \
+  $(SDK_ROOT)/components/libraries/delay \
   $(SDK_ROOT)/components/libraries/util \
+  $(SDK_ROOT)/components/libraries/serial \
+  $(SDK_ROOT)/components/libraries/timer \
+  $(SDK_ROOT)/components/libraries/mutex \
 
 # Libraries common to all targets
 LIB_FILES += \

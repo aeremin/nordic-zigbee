@@ -56,6 +56,7 @@ extern "C" {
 #include "zb_ha_dimmable_light.h"
 #include "zb_error_handler.h"
 #include "zb_nrf52840_internal.h"
+#include "nrf_serial.h"
 
 #ifdef __cplusplus
 }
@@ -256,6 +257,44 @@ static bulb_device_ep_ctx_t zb_ep_dev_ctx = {
     0
 };
 
+
+///////////////////// UART ////////////////////////
+static void sleep_handler(void)
+{
+    __WFE();
+    __SEV();
+    __WFE();
+}
+
+static const nrf_drv_uart_config_t m_uarte0_drv_config = [](){
+    nrf_drv_uart_config_t res;
+    res.pselrxd = ARDUINO_SDA_PIN;
+    res.pseltxd = ARDUINO_SCL_PIN;
+    res.pselrts = RTS_PIN_NUMBER;
+    res.pselcts = CTS_PIN_NUMBER;
+    res.hwfc = NRF_UART_HWFC_DISABLED;
+    res.parity = NRF_UART_PARITY_EXCLUDED;
+    res.baudrate = NRF_UART_BAUDRATE_115200;
+    res.interrupt_priority = UART_DEFAULT_CONFIG_IRQ_PRIORITY;
+    return res;
+}();
+
+#define SERIAL_FIFO_TX_SIZE 32
+#define SERIAL_FIFO_RX_SIZE 32
+
+NRF_SERIAL_QUEUES_DEF(serial0_queues, SERIAL_FIFO_TX_SIZE, SERIAL_FIFO_RX_SIZE);
+
+#define SERIAL_BUFF_TX_SIZE 1
+#define SERIAL_BUFF_RX_SIZE 1
+
+NRF_SERIAL_BUFFERS_DEF(serial0_buffs, SERIAL_BUFF_TX_SIZE, SERIAL_BUFF_RX_SIZE);
+
+NRF_SERIAL_CONFIG_DEF(serial0_config, NRF_SERIAL_MODE_DMA,
+                      &serial0_queues, &serial0_buffs, NULL, sleep_handler);
+
+NRF_SERIAL_UART_DEF(serial0_uarte, 1);
+
+
 /**@brief Function to convert hue_stauration to RGB color space.
  *
  * @param[IN]  hue          Hue value of color.
@@ -344,6 +383,10 @@ static void zb_update_color_values(bulb_device_ep_ctx_t * p_ep_dev_ctx)
 
 void ble_thingy_master_update_led(led_params_t* p_led_params) {
     NRF_LOG_INFO("Setting color to %d %d %d", p_led_params->r_value, p_led_params->g_value, p_led_params->b_value);
+    char buffer[20]; // Maximal string is 'RGB 255 255 255\n\r\0' which is 18 symbols
+    int n = sprintf(buffer, "RGB %d %d %d\n\r", p_led_params->r_value, p_led_params->g_value, p_led_params->b_value);
+    nrf_serial_write(&serial0_uarte, buffer, n, nullptr, NRF_SERIAL_MAX_TIMEOUT);
+    nrf_serial_flush(&serial0_uarte, NRF_SERIAL_MAX_TIMEOUT);
 }
 
 /**@brief Function for changing the hue of the light bulb.
@@ -901,6 +944,13 @@ void zboss_signal_handler(zb_uint8_t param)
     }
 }
 
+void InitUart() {
+    // Used by nrf_serial calls when timeout < NRF_SERIAL_MAX_TIMEOUT
+    APP_ERROR_CHECK(app_timer_init());
+
+    APP_ERROR_CHECK(nrf_serial_init(&serial0_uarte, &m_uarte0_drv_config, &serial0_config));
+}
+
 /**@brief Function for application main entry.
  */
 int main(void)
@@ -910,6 +960,7 @@ int main(void)
     leds_init();
 
     NRF_LOG_INFO("Started light_bulb, v001");
+    InitUart();
 
     /* Set ZigBee stack logging level and traffic dump subsystem. */
     ZB_SET_TRACE_LEVEL(ZIGBEE_TRACE_LEVEL);

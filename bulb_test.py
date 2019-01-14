@@ -14,8 +14,8 @@ def buildAndUpload():
   out = subprocess.check_output(['nrfjprog', '--snr', '683044303', '--program', '_build/nrf52840_xxaa.hex',  '--chiperase', '--reset'], cwd=makefile_location).decode('utf-8')
   print(out)
 
-def waitUntilStringInUart(waitFor):
-  with serial.Serial('COM11', 115200) as ser:
+def waitUntilStringInUart(waitFor, port='COM11'):
+  with serial.Serial(port, 115200) as ser:
     while True:
       line = ser.readline().decode('ascii', 'ignore')
       if line:
@@ -110,7 +110,7 @@ class TestLightIsDiscoverable(unittest.TestCase):
   def test_05_SetColor(self):
     id, _ = self.helper.getColorLights()[0]
     self.helper.SetGreenColor(id)
-    waitUntilStringInUart('0 255 0')
+    waitUntilStringInUart('RGB 0 255 0', 'COM3')
 
 
 if __name__ == '__main__':
