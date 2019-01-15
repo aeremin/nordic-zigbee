@@ -8,7 +8,7 @@ import unittest
 def buildAndUpload():
   makefile_location = 'light_bulb/pca10056/blank/armgcc'
   print('-- Building firmware --')
-  out = subprocess.check_output(['bash', '-c', 'make'], cwd=makefile_location).decode('utf-8')
+  out = subprocess.check_output(['bash', '-c', 'make', '-j8'], cwd=makefile_location).decode('utf-8')
   print(out)
   print('-- Uploading firmware --')
   out = subprocess.check_output(['nrfjprog', '--snr', '683044303', '--program', '_build/nrf52840_xxaa.hex',  '--chiperase', '--reset'], cwd=makefile_location).decode('utf-8')
