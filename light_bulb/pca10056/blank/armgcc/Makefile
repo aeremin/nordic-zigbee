@@ -63,6 +63,8 @@ SRC_FILES += \
   $(SDK_ROOT)/modules/nrfx/drivers/src/nrfx_uart.c \
   $(SDK_ROOT)/modules/nrfx/drivers/src/nrfx_uarte.c \
   $(PROJ_DIR)/main.cpp \
+  $(PROJ_DIR)/clusters/commons.cpp \
+  $(PROJ_DIR)/clusters/level_control.cpp \
   $(PROJ_DIR)/clusters/on_off.cpp \
   $(PROJ_DIR)/color_helpers.cpp \
   $(SDK_ROOT)/modules/nrfx/mdk/system_nrf52840.c \

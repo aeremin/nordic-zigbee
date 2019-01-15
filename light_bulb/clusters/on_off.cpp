@@ -11,15 +11,15 @@ extern "C" {
 }
 #endif
 
-zb_uint16_t cluster_revision_on_off_attr_list = ZB_ZCL_CLUSTER_REVISION_DEFAULT;
+#include "commons.h"
 
 OnOffCluster::OnOffCluster() :
-  on_off_attr_list({
+  attributes_list({
     {
         ZB_ZCL_ATTR_GLOBAL_CLUSTER_REVISION_ID,
         ZB_ZCL_ATTR_TYPE_U16,
         ZB_ZCL_ATTR_ACCESS_READ_ONLY,
-        (zb_voidp_t) &(cluster_revision_on_off_attr_list)
+        (zb_voidp_t) &kDefaultClusterRevision
     },
     ZB_SET_ATTR_DESCR_WITH_ZB_ZCL_ATTR_ON_OFF_ON_OFF_ID(&attributes.on_off),
     ZB_SET_ATTR_DESCR_WITH_ZB_ZCL_ATTR_ON_OFF_GLOBAL_SCENE_CONTROL(&attributes.global_scene_ctrl),

@@ -68,6 +68,7 @@ extern "C" {
 #include "nrf_log_ctrl.h"
 #include "nrf_log_default_backends.h"
 
+#include "clusters/level_control.h"
 #include "clusters/on_off.h"
 #include "color_helpers.h"
 #include "zigbee_color_light.h"
@@ -146,13 +147,6 @@ struct bulb_device_identify_attr_t
     zb_uint8_t  commission_state;
 };
 
-/* Level Control cluster attributes. */
-struct bulb_device_level_control_attr_t
-{
-    zb_uint8_t  current_level;
-    zb_uint16_t remaining_time;
-};
-
 /* Scenes cluster attributes. */
 struct bulb_device_scenes_attr_t
 {
@@ -176,7 +170,6 @@ struct bulb_device_ctx_t
     bulb_device_identify_attr_t      identify_attr;
     bulb_device_scenes_attr_t        scenes_attr;
     bulb_device_groups_attr_t        groups_attr;
-    bulb_device_level_control_attr_t level_control_attr;
 };
 
 
@@ -208,17 +201,13 @@ ZB_ZCL_DECLARE_BASIC_ATTRIB_LIST_HA_ADDS_FULL(basic_attr_list,
                                               m_dev_ctx.basic_attr.location_id,
                                               &m_dev_ctx.basic_attr.ph_env);
 
-ZB_ZCL_DECLARE_LEVEL_CONTROL_ATTRIB_LIST(level_control_attr_list,
-                                         &m_dev_ctx.level_control_attr.current_level,
-                                         &m_dev_ctx.level_control_attr.remaining_time);
-
 ZB_HA_DECLARE_DIMMABLE_LIGHT_CLUSTER_LIST(dimmable_light_clusters,
                                           basic_attr_list,
                                           identify_attr_list,
                                           groups_attr_list,
                                           scenes_attr_list,
-                                          OnOffCluster::GetInstance().on_off_attr_list,
-                                          level_control_attr_list);
+                                          OnOffCluster::GetInstance().attributes_list,
+                                          LevelControlCluster::GetInstance().attributes_list);
 
 ZB_HA_DECLARE_LIGHT_EP(dimmable_light_ep,
                        HA_DIMMABLE_LIGHT_ENDPOINT,
@@ -249,7 +238,6 @@ static bulb_device_ep_ctx_t zb_ep_dev_ctx = {
     ZB_FALSE,
     0
 };
-
 
 ///////////////////// UART ////////////////////////
 static void sleep_handler(void)
@@ -491,11 +479,11 @@ static void log_init(void)
   *
   * @param[in]   new_level   Light bulb brightness value.
  */
-static void level_control_set_value(zb_uint16_t new_level)
+static void level_control_set_value(uint8_t new_level)
 {
-    m_dev_ctx.level_control_attr.current_level = new_level;
-
     NRF_LOG_INFO("Set level value: %i", new_level);
+
+    LevelControlCluster::GetInstance().SetLevel(new_level);
 
     /* Scale level value: APP_PWM uses 0-100 scale, but ZigBee level control cluster uses values from 0 up to 255. */
     new_level = new_level * 100 / 256;
@@ -521,7 +509,7 @@ static void on_off_set_value(zb_bool_t on)
 
     if (on)
     {
-        level_control_set_value(m_dev_ctx.level_control_attr.current_level);
+        level_control_set_value(LevelControlCluster::GetInstance().GetLevel());
     }
     else
     {
@@ -595,10 +583,7 @@ static void bulb_clusters_attr_init(void)
 
     /* On/Off cluster attributes data */
     OnOffCluster::GetInstance().Init(HA_DIMMABLE_LIGHT_ENDPOINT);
-
-    m_dev_ctx.level_control_attr.current_level  = ZB_ZCL_LEVEL_CONTROL_LEVEL_MAX_VALUE;
-    m_dev_ctx.level_control_attr.remaining_time = ZB_ZCL_LEVEL_CONTROL_REMAINING_TIME_DEFAULT_VALUE;
-    ZB_ZCL_LEVEL_CONTROL_SET_LEVEL_VALUE(HA_DIMMABLE_LIGHT_ENDPOINT, m_dev_ctx.level_control_attr.current_level);
+    LevelControlCluster::GetInstance().Init(HA_DIMMABLE_LIGHT_ENDPOINT);
 
     bulb_clusters_attr_init(zb_ep_dev_ctx.p_device_ctx, kColorLightEndpoint);
 }
@@ -879,7 +864,7 @@ int main(void)
     ZB_AF_REGISTER_DEVICE_CTX(&double_light_ctx);
 
     bulb_clusters_attr_init();
-    level_control_set_value(m_dev_ctx.level_control_attr.current_level);
+    level_control_set_value(LevelControlCluster::GetInstance().GetLevel());
 
     /** Start Zigbee Stack. */
     ZB_ERROR_CHECK(zboss_start());

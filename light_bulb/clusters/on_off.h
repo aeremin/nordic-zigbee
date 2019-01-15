@@ -1,6 +1,5 @@
 #ifndef APP_ON_OFF
 #define APP_ON_OFF
-#include <array>
 
 #ifdef __cplusplus
 extern "C" {
@@ -23,7 +22,7 @@ public:
   void Init(zb_uint8_t endpoint);
   void SetOn(bool is_on);
 
-  zb_zcl_attr_t on_off_attr_list[6];
+  zb_zcl_attr_t attributes_list[6];
 private:
   zb_dev_on_off_attr_t attributes;
 };
