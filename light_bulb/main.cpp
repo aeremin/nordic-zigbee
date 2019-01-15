@@ -68,7 +68,7 @@ extern "C" {
 #include "nrf_log_ctrl.h"
 #include "nrf_log_default_backends.h"
 
-#include "on_off.h"
+#include "clusters/on_off.h"
 #include "color_helpers.h"
 #include "zigbee_color_light.h"
 
