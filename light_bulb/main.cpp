@@ -45,8 +45,6 @@
  * @brief Dimmable light sample (HA profile)
  */
 
-#include <cmath>
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -71,6 +69,7 @@ extern "C" {
 #include "nrf_log_default_backends.h"
 
 #include "on_off.h"
+#include "color_helpers.h"
 #include "zigbee_color_light.h"
 
 const int kColorLightEndpoint = 11;
@@ -226,18 +225,12 @@ ZB_HA_DECLARE_LIGHT_EP(dimmable_light_ep,
                        dimmable_light_clusters);
 
 /////////////////////////////////////// COLOR LIGHT ///////////////////////////////////////////////////
-struct led_params_t
-{
-    uint8_t  r_value;               /**< Red color value. */
-    uint8_t  g_value;               /**< Green color value. */
-    uint8_t  b_value;               /**< Blue color value. */
-};
 
 /* Structure to store zigbee endpoint related variables */
 struct bulb_device_ep_ctx_t
 {
     zb_bulb_dev_ctx_t         * const p_device_ctx;                 /**< Pointer to structure containing cluster attributes. */
-    led_params_t                led_params;                         /**< Table to store RGB color values to control thigny LED. */
+    RgbColor                    rgb_color;
     const uint8_t               ep_id;                              /**< Endpoint ID. */
     zb_bool_t                   value_changing_flag;                /**< Variable used as flag while detecting changing value in Level Control attribute. */
     uint8_t                     prev_lvl_ctrl_value;                /**< Variable used to store previous attribute value while detecting changing value in Level Control attribute. */
@@ -294,76 +287,6 @@ NRF_SERIAL_CONFIG_DEF(serial0_config, NRF_SERIAL_MODE_DMA,
 
 NRF_SERIAL_UART_DEF(serial0_uarte, 1);
 
-
-/**@brief Function to convert hue_stauration to RGB color space.
- *
- * @param[IN]  hue          Hue value of color.
- * @param[IN]  saturation   Saturation value of color.
- * @param[IN]  brightness   Brightness value of color.
- * @param[OUT] p_led_params Pointer to structure containing parameters to write to LED characteristic
- */
-static void convert_hsb_to_rgb(uint8_t hue, uint8_t saturation, uint8_t brightness, led_params_t * p_led_params)
-{
-    /* Check if p_leds_params is not NULL pointer */
-    if (p_led_params == NULL)
-    {
-        NRF_LOG_INFO("Incorrect pointer to led params");
-        return;
-    }
-    /* C, X, m are auxiliary variables */
-    float C     = 0.0;
-    float X     = 0.0;
-    float m     = 0.0;
-    /* Convertion HSB --> RGB */
-    C = (brightness / 255.0f) * (saturation / 254.0f);
-    X = (hue / 254.0f) * 6.0f;
-    /* Casting in var X is necessary due to implementation of floating-point modulo_2 */
-    /*lint -e653 */
-    X = (X - (2 * (((uint8_t) X) / 2)));
-    /*lint -restore */
-    X -= 1.0f;
-    X = C * (1.0f - ((X > 0.0f) ? (X) : (-1.0f * X)));
-    m = (brightness / 255.0f) - C;
-
-    /* Hue value is stored in range (0 - 255) instead of (0 - 360) degree */
-    if (hue <= 42) /* hue < 60 degree */
-    {
-        p_led_params->r_value = (uint8_t)((C + m) * 255.0f);
-        p_led_params->g_value = (uint8_t)((X + m) * 255.0f);
-        p_led_params->b_value = (uint8_t)((0.0f + m) * 255.0f);
-    }
-    else if (hue <= 84)  /* hue < 120 degree */
-    {
-        p_led_params->r_value = (uint8_t)((X + m) * 255.0f);
-        p_led_params->g_value = (uint8_t)((C + m) * 255.0f);
-        p_led_params->b_value = (uint8_t)((0.0f + m) * 255.0f);
-    }
-    else if (hue <= 127) /* hue < 180 degree */
-    {
-        p_led_params->r_value = (uint8_t)((0.0f + m) * 255.0f);
-        p_led_params->g_value = (uint8_t)((C + m) * 255.0f);
-        p_led_params->b_value = (uint8_t)((X + m) * 255.0f);
-    }
-    else if (hue < 170)  /* hue < 240 degree */
-    {
-        p_led_params->r_value = (uint8_t)((0.0f + m) * 255.0f);
-        p_led_params->g_value = (uint8_t)((X + m) * 255.0f);
-        p_led_params->b_value = (uint8_t)((C + m) * 255.0f);
-    }
-    else if (hue <= 212) /* hue < 300 degree */
-    {
-        p_led_params->r_value = (uint8_t)((X + m) * 255.0f);
-        p_led_params->g_value = (uint8_t)((0.0f + m) * 255.0f);
-        p_led_params->b_value = (uint8_t)((C + m) * 255.0f);
-    }
-    else                /* hue < 360 degree */
-    {
-        p_led_params->r_value = (uint8_t)((C + m) * 255.0f);
-        p_led_params->g_value = (uint8_t)((0.0f + m) * 255.0f);
-        p_led_params->b_value = (uint8_t)((X + m) * 255.0f);
-    }
-}
-
 /**@brief Function for updating RGB color value.
  *
  * @param[IN] p_ep_dev_ctx pointer to endpoint device ctx.
@@ -375,16 +298,15 @@ static void zb_update_color_values(bulb_device_ep_ctx_t * p_ep_dev_ctx)
         NRF_LOG_INFO("Can not update color values - bulb_device_ep_ctx uninitialised");
         return;
     }
-    convert_hsb_to_rgb(p_ep_dev_ctx->p_device_ctx->color_control_attr.set_color_info.current_hue,
-                       p_ep_dev_ctx->p_device_ctx->color_control_attr.set_color_info.current_saturation,
-                       p_ep_dev_ctx->p_device_ctx->level_control_attr.current_level,
-                       &p_ep_dev_ctx->led_params);
+    p_ep_dev_ctx->rgb_color = ConvertHsbToRgb(p_ep_dev_ctx->p_device_ctx->color_control_attr.set_color_info.current_hue,
+                                              p_ep_dev_ctx->p_device_ctx->color_control_attr.set_color_info.current_saturation,
+                                              p_ep_dev_ctx->p_device_ctx->level_control_attr.current_level);
 }
 
-void ble_thingy_master_update_led(led_params_t* p_led_params) {
-    NRF_LOG_INFO("Setting color to %d %d %d", p_led_params->r_value, p_led_params->g_value, p_led_params->b_value);
+void ble_thingy_master_update_led(RgbColor* p_rgb_color) {
+    NRF_LOG_INFO("Setting color to %d %d %d", p_rgb_color->r_value, p_rgb_color->g_value, p_rgb_color->b_value);
     char buffer[20]; // Maximal string is 'RGB 255 255 255\n\r\0' which is 18 symbols
-    int n = sprintf(buffer, "RGB %d %d %d\n\r", p_led_params->r_value, p_led_params->g_value, p_led_params->b_value);
+    int n = sprintf(buffer, "RGB %d %d %d\n\r", p_rgb_color->r_value, p_rgb_color->g_value, p_rgb_color->b_value);
     nrf_serial_write(&serial0_uarte, buffer, n, nullptr, NRF_SERIAL_MAX_TIMEOUT);
     nrf_serial_flush(&serial0_uarte, NRF_SERIAL_MAX_TIMEOUT);
 }
@@ -399,7 +321,7 @@ static void color_control_set_value_hue(bulb_device_ep_ctx_t * p_ep_dev_ctx, zb_
     p_ep_dev_ctx->p_device_ctx->color_control_attr.set_color_info.current_hue = new_hue;
 
     zb_update_color_values(p_ep_dev_ctx);
-    ble_thingy_master_update_led(&p_ep_dev_ctx->led_params);
+    ble_thingy_master_update_led(&p_ep_dev_ctx->rgb_color);
 
     NRF_LOG_INFO("Set color hue value: %i on endpoint: %hu", new_hue, p_ep_dev_ctx->ep_id);
 }
@@ -414,52 +336,16 @@ static void color_control_set_value_saturation(bulb_device_ep_ctx_t * p_ep_dev_c
     p_ep_dev_ctx->p_device_ctx->color_control_attr.set_color_info.current_saturation = new_saturation;
 
     zb_update_color_values(p_ep_dev_ctx);
-    ble_thingy_master_update_led(&p_ep_dev_ctx->led_params);
+    ble_thingy_master_update_led(&p_ep_dev_ctx->rgb_color);
 
     NRF_LOG_INFO("Set color saturation value: %i on endpoint: %hu", new_saturation, p_ep_dev_ctx->ep_id);
 }
 
-led_params_t ConvertXyToRgb(zb_uint16_t input_x, zb_uint16_t input_y) {
-    float x = float(input_x) / 0xffff;
-    float y = float(input_y) / 0xffff;
-    float z = 1.0f - x - y;
-    float Y = 1.0f; // Brightness. TODO: Use value from level control cluster?
-    float X = (Y / y) * x;
-    float Z = (Y / y) * z;
-    float r = X * 3.2406f - Y * 1.5372f - Z * 0.4986f;
-    float g = -X * 0.9689f + Y * 1.8758f + Z * 0.0415f;
-    float b = X * 0.0557f - Y * 0.2040f + Z * 1.0570f;
-
-    if (r > b && r > g && r > 1.0f) {
-        // red is too big
-        g = g / r;
-        b = b / r;
-        r = 1.0f;
-    }
-    else if (g > b && g > r && g > 1.0f) {
-        // green is too big
-        r = r / g;
-        b = b / g;
-        g = 1.0f;
-    }
-    else if (b > r && b > g && b > 1.0f) {
-        // blue is too big
-        r = r / b;
-        g = g / b;
-        b = 1.0f;
-    }
-
-    r = r <= 0.0031308f ? 12.92f * r : (1.0f + 0.055f) * pow(r, (1.0f / 2.4f)) - 0.055f;
-    g = g <= 0.0031308f ? 12.92f * g : (1.0f + 0.055f) * pow(g, (1.0f / 2.4f)) - 0.055f;
-    b = b <= 0.0031308f ? 12.92f * b : (1.0f + 0.055f) * pow(b, (1.0f / 2.4f)) - 0.055f;
-    return { uint8_t(r * 256), uint8_t(g * 256), uint8_t(b * 256) };
-}
-
 void UpdateStateFromXy(zb_uint8_t) {
     auto* p_ep_dev_ctx = &zb_ep_dev_ctx;
-    p_ep_dev_ctx->led_params = ConvertXyToRgb(p_ep_dev_ctx->p_device_ctx->color_control_attr.set_color_info.current_X,
-                                              p_ep_dev_ctx->p_device_ctx->color_control_attr.set_color_info.current_Y);
-    ble_thingy_master_update_led(&p_ep_dev_ctx->led_params);
+    p_ep_dev_ctx->rgb_color = ConvertXyToRgb(p_ep_dev_ctx->p_device_ctx->color_control_attr.set_color_info.current_X,
+                                             p_ep_dev_ctx->p_device_ctx->color_control_attr.set_color_info.current_Y);
+    ble_thingy_master_update_led(&p_ep_dev_ctx->rgb_color);
 }
 
 void color_control_set_value_x(bulb_device_ep_ctx_t * p_ep_dev_ctx)
@@ -486,7 +372,7 @@ static void level_control_set_value(bulb_device_ep_ctx_t * p_ep_dev_ctx, zb_uint
     p_ep_dev_ctx->p_device_ctx->level_control_attr.current_level = new_level;
 
     zb_update_color_values(p_ep_dev_ctx);
-    ble_thingy_master_update_led(&p_ep_dev_ctx->led_params);
+    ble_thingy_master_update_led(&p_ep_dev_ctx->rgb_color);
 
     NRF_LOG_INFO("Set level value: %i on endpoint: %hu", new_level, p_ep_dev_ctx->ep_id);
 
@@ -512,10 +398,10 @@ static void on_off_set_value(bulb_device_ep_ctx_t * p_ep_dev_ctx, zb_bool_t on)
     }
     else
     {
-        p_ep_dev_ctx->led_params.r_value = 0;
-        p_ep_dev_ctx->led_params.g_value = 0;
-        p_ep_dev_ctx->led_params.b_value = 0;
-        ble_thingy_master_update_led(&p_ep_dev_ctx->led_params);
+        p_ep_dev_ctx->rgb_color.r_value = 0;
+        p_ep_dev_ctx->rgb_color.g_value = 0;
+        p_ep_dev_ctx->rgb_color.b_value = 0;
+        ble_thingy_master_update_led(&p_ep_dev_ctx->rgb_color);
     }
 }
 
