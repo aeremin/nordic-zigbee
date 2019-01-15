@@ -21,10 +21,10 @@ OnOffCluster::OnOffCluster() :
         ZB_ZCL_ATTR_ACCESS_READ_ONLY,
         (zb_voidp_t) &(cluster_revision_on_off_attr_list)
     },
-    ZB_SET_ATTR_DESCR_WITH_ZB_ZCL_ATTR_ON_OFF_ON_OFF_ID(&on_off),
-    ZB_SET_ATTR_DESCR_WITH_ZB_ZCL_ATTR_ON_OFF_GLOBAL_SCENE_CONTROL(&global_scene_ctrl),
-    ZB_SET_ATTR_DESCR_WITH_ZB_ZCL_ATTR_ON_OFF_ON_TIME( &on_time),
-    ZB_SET_ATTR_DESCR_WITH_ZB_ZCL_ATTR_ON_OFF_OFF_WAIT_TIME(&off_wait_time),
+    ZB_SET_ATTR_DESCR_WITH_ZB_ZCL_ATTR_ON_OFF_ON_OFF_ID(&attributes.on_off),
+    ZB_SET_ATTR_DESCR_WITH_ZB_ZCL_ATTR_ON_OFF_GLOBAL_SCENE_CONTROL(&attributes.global_scene_ctrl),
+    ZB_SET_ATTR_DESCR_WITH_ZB_ZCL_ATTR_ON_OFF_ON_TIME( &attributes.on_time),
+    ZB_SET_ATTR_DESCR_WITH_ZB_ZCL_ATTR_ON_OFF_OFF_WAIT_TIME(&attributes.off_wait_time),
     {
         ZB_ZCL_NULL_ID,
         0,
@@ -40,10 +40,10 @@ OnOffCluster& OnOffCluster::GetInstance() {
 }
 
 void OnOffCluster::SetOn(bool is_on) {
-  on_off = is_on ? ZB_TRUE : ZB_FALSE;
+  attributes.on_off = is_on ? ZB_TRUE : ZB_FALSE;
 }
 
 void OnOffCluster::Init(zb_uint8_t endpoint) {
   SetOn(true);
-  ZB_ZCL_LEVEL_CONTROL_SET_ON_OFF_VALUE(endpoint, on_off);
+  ZB_ZCL_LEVEL_CONTROL_SET_ON_OFF_VALUE(endpoint, attributes.on_off);
 }

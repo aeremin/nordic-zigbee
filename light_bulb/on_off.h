@@ -9,6 +9,7 @@ extern "C" {
 #include "zboss_api.h"
 #include "zb_types.h"
 #include "zb_zcl_common.h"
+#include "zigbee_types.h"
 
 #ifdef __cplusplus
 }
@@ -24,10 +25,7 @@ public:
 
   zb_zcl_attr_t on_off_attr_list[6];
 private:
-  zb_bool_t   on_off;
-  zb_bool_t   global_scene_ctrl;
-  zb_uint16_t on_time;
-  zb_uint16_t off_wait_time;
+  zb_dev_on_off_attr_t attributes;
 };
 
 #endif // APP_ON_OFF
