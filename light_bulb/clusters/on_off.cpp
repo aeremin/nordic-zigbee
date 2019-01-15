@@ -15,22 +15,12 @@ extern "C" {
 
 OnOffCluster::OnOffCluster() :
   attributes_list({
-    {
-        ZB_ZCL_ATTR_GLOBAL_CLUSTER_REVISION_ID,
-        ZB_ZCL_ATTR_TYPE_U16,
-        ZB_ZCL_ATTR_ACCESS_READ_ONLY,
-        (zb_voidp_t) &kDefaultClusterRevision
-    },
+    FirstAttribute(),
     ZB_SET_ATTR_DESCR_WITH_ZB_ZCL_ATTR_ON_OFF_ON_OFF_ID(&attributes.on_off),
     ZB_SET_ATTR_DESCR_WITH_ZB_ZCL_ATTR_ON_OFF_GLOBAL_SCENE_CONTROL(&attributes.global_scene_ctrl),
     ZB_SET_ATTR_DESCR_WITH_ZB_ZCL_ATTR_ON_OFF_ON_TIME( &attributes.on_time),
     ZB_SET_ATTR_DESCR_WITH_ZB_ZCL_ATTR_ON_OFF_OFF_WAIT_TIME(&attributes.off_wait_time),
-    {
-        ZB_ZCL_NULL_ID,
-        0,
-        0,
-        nullptr
-    }
+    LastAttribute()
   })
 {}
 

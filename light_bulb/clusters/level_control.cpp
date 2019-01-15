@@ -14,21 +14,11 @@ extern "C" {
 
 LevelControlCluster::LevelControlCluster() :
   attributes_list({
-    {
-        ZB_ZCL_ATTR_GLOBAL_CLUSTER_REVISION_ID,
-        ZB_ZCL_ATTR_TYPE_U16,
-        ZB_ZCL_ATTR_ACCESS_READ_ONLY,
-        (zb_voidp_t) &kDefaultClusterRevision
-    },
+    FirstAttribute(),
     ZB_SET_ATTR_DESCR_WITH_ZB_ZCL_ATTR_LEVEL_CONTROL_CURRENT_LEVEL_ID(&attributes.current_level),
     ZB_SET_ATTR_DESCR_WITH_ZB_ZCL_ATTR_LEVEL_CONTROL_REMAINING_TIME_ID(&attributes.remaining_time),
     ZB_SET_ATTR_DESCR_WITH_ZB_ZCL_ATTR_LEVEL_CONTROL_MOVE_STATUS_ID(&move_status),
-    {
-        ZB_ZCL_NULL_ID,
-        0,
-        0,
-        nullptr
-    }
+    LastAttribute()
   })
 {}
 

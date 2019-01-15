@@ -7,11 +7,13 @@ extern "C" {
 
 #include "zboss_api.h"
 #include "zb_types.h"
+#include "zb_zcl_common.h"
 
 #ifdef __cplusplus
 }
 #endif
 
-extern zb_uint16_t kDefaultClusterRevision;
+zb_zcl_attr_t FirstAttribute();
+zb_zcl_attr_t LastAttribute();
 
 #endif // APP_COMMONS
