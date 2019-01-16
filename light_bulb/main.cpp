@@ -69,6 +69,7 @@ extern "C" {
 #include "nrf_log_default_backends.h"
 
 #include "clusters/basic.h"
+#include "clusters/identify.h"
 #include "clusters/level_control.h"
 #include "clusters/on_off.h"
 #include "color_helpers.h"
@@ -118,13 +119,6 @@ const zb_bool_t kErasePersistentConfigOnRestart = ZB_TRUE;
 
 APP_PWM_INSTANCE(BULB_PWM_NAME, BULB_PWM_TIMER);
 
-/* Identify cluster attributes. */
-struct bulb_device_identify_attr_t
-{
-    zb_uint16_t identify_time;
-    zb_uint8_t  commission_state;
-};
-
 /* Scenes cluster attributes. */
 struct bulb_device_scenes_attr_t
 {
@@ -144,18 +138,12 @@ struct bulb_device_groups_attr_t
 /* Main application customizable context. Stores all settings and static values. */
 struct bulb_device_ctx_t
 {
-    bulb_device_identify_attr_t      identify_attr;
     bulb_device_scenes_attr_t        scenes_attr;
     bulb_device_groups_attr_t        groups_attr;
 };
 
 
 static bulb_device_ctx_t m_dev_ctx;
-
-ZB_ZCL_DECLARE_IDENTIFY_ATTRIB_LIST_HA(identify_attr_list,
-                                       &m_dev_ctx.identify_attr.identify_time,
-                                       &m_dev_ctx.identify_attr.commission_state);
-
 
 ZB_ZCL_DECLARE_GROUPS_ATTRIB_LIST(groups_attr_list, &m_dev_ctx.groups_attr.name_support);
 
@@ -168,7 +156,7 @@ ZB_ZCL_DECLARE_SCENES_ATTRIB_LIST(scenes_attr_list,
 
 ZB_HA_DECLARE_DIMMABLE_LIGHT_CLUSTER_LIST(dimmable_light_clusters,
                                           BasicCluster::GetInstance().attributes_list,
-                                          identify_attr_list,
+                                          IdentifyCluster::GetInstance().attributes_list,
                                           groups_attr_list,
                                           scenes_attr_list,
                                           OnOffCluster::GetInstance().attributes_list,
@@ -509,11 +497,7 @@ static void leds_init(void)
  */
 static void bulb_clusters_attr_init(void)
 {
-    /* Identify cluster attributes data */
-    m_dev_ctx.identify_attr.identify_time    = ZB_ZCL_IDENTIFY_IDENTIFY_TIME_DEFAULT_VALUE;
-    m_dev_ctx.identify_attr.commission_state = ZB_ZCL_ATTR_IDENTIFY_COMMISSION_STATE_HA_ID_DEF_VALUE;
-
-    /* On/Off cluster attributes data */
+    IdentifyCluster::GetInstance().Init();
     BasicCluster::GetInstance().Init("DimmableLight");
     OnOffCluster::GetInstance().Init(kDimmableLightEndoint);
     LevelControlCluster::GetInstance().Init(kDimmableLightEndoint);
