@@ -65,12 +65,14 @@ SRC_FILES += \
   $(PROJ_DIR)/main.cpp \
   $(PROJ_DIR)/clusters/commons.cpp \
   $(PROJ_DIR)/clusters/basic.cpp \
+  $(PROJ_DIR)/clusters/color_control.cpp \
   $(PROJ_DIR)/clusters/groups.cpp \
   $(PROJ_DIR)/clusters/identify.cpp \
   $(PROJ_DIR)/clusters/level_control.cpp \
   $(PROJ_DIR)/clusters/on_off.cpp \
   $(PROJ_DIR)/clusters/scenes.cpp \
   $(PROJ_DIR)/devices/home_automation_dimmable_light.cpp \
+  $(PROJ_DIR)/devices/light_link_color_light.cpp \
   $(PROJ_DIR)/color_helpers.cpp \
   $(SDK_ROOT)/modules/nrfx/mdk/system_nrf52840.c \
 

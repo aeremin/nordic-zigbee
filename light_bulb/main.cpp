@@ -70,6 +70,7 @@ extern "C"
 #include "nrf_log_default_backends.h"
 
 #include "devices/home_automation_dimmable_light.h"
+#include "devices/light_link_color_light.h"
 #include "color_helpers.h"
 #include "zigbee_color_light.h"
 
@@ -116,23 +117,8 @@ const zb_bool_t kErasePersistentConfigOnRestart = ZB_TRUE;
 
 APP_PWM_INSTANCE(BULB_PWM_NAME, BULB_PWM_TIMER);
 
-/* Scenes cluster attributes. */
-struct bulb_device_scenes_attr_t
-{
-    zb_uint8_t scene_count;
-    zb_uint8_t current_scene;
-    zb_uint8_t scene_valid;
-    zb_uint8_t name_support;
-    zb_uint16_t current_group;
-};
-
-/* Groups cluster attributes. */
-struct bulb_device_groups_attr_t
-{
-    zb_uint8_t name_support;
-};
-
 static HomeAutomationDimmableLight m_dev_ctx;
+static LightLinkColorLight zb_dev_ctx_first;
 
 ZB_HA_DECLARE_LIGHT_EP(dimmable_light_ep,
                        kDimmableLightEndoint,
@@ -143,7 +129,7 @@ ZB_HA_DECLARE_LIGHT_EP(dimmable_light_ep,
 /* Structure to store zigbee endpoint related variables */
 struct bulb_device_ep_ctx_t
 {
-    zb_bulb_dev_ctx_t         * const p_device_ctx;                 /**< Pointer to structure containing cluster attributes. */
+    LightLinkColorLight         * const p_device_ctx;                 /**< Pointer to structure containing cluster attributes. */
     RgbColor rgb_color;
     const uint8_t ep_id;           /**< Endpoint ID. */
     zb_bool_t value_changing_flag; /**< Variable used as flag while detecting changing value in Level Control attribute. */
@@ -151,9 +137,7 @@ struct bulb_device_ep_ctx_t
 };
 
 /* Declare context variable and cluster attribute list for first endpoint */
-static zb_bulb_dev_ctx_t zb_dev_ctx_first;
-ZB_DECLARE_COLOR_LIGHT_BULB_CLUSTER_ATTR_LIST(zb_dev_ctx_first, color_light_bulb_clusters_first);
-ZB_ZCL_DECLARE_COLOR_LIGHT_EP(color_light_bulb_ep_first, kColorLightEndpoint, color_light_bulb_clusters_first);
+ZB_ZCL_DECLARE_COLOR_LIGHT_EP(color_light_bulb_ep_first, kColorLightEndpoint, zb_dev_ctx_first.cluster_descriptors);
 ZBOSS_DECLARE_DEVICE_CTX_2_EP(double_light_ctx, dimmable_light_ep, color_light_bulb_ep_first);
 
 static bulb_device_ep_ctx_t zb_ep_dev_ctx = {
@@ -211,9 +195,9 @@ static void zb_update_color_values(bulb_device_ep_ctx_t * p_ep_dev_ctx)
         NRF_LOG_INFO("Can not update color values - bulb_device_ep_ctx uninitialised");
         return;
     }
-    p_ep_dev_ctx->rgb_color = ConvertHsbToRgb(p_ep_dev_ctx->p_device_ctx->color_control_attr.set_color_info.current_hue,
-                                              p_ep_dev_ctx->p_device_ctx->color_control_attr.set_color_info.current_saturation,
-                                              p_ep_dev_ctx->p_device_ctx->level_control_attr.current_level);
+    p_ep_dev_ctx->rgb_color = ConvertHsbToRgb(p_ep_dev_ctx->p_device_ctx->color_control.attributes.set_color_info.current_hue,
+                                              p_ep_dev_ctx->p_device_ctx->color_control.attributes.set_color_info.current_saturation,
+                                              p_ep_dev_ctx->p_device_ctx->level_control.GetLevel());
 }
 
 void ble_thingy_master_update_led(RgbColor* p_rgb_color) {
@@ -231,7 +215,7 @@ void ble_thingy_master_update_led(RgbColor* p_rgb_color) {
  */
 static void color_control_set_value_hue(bulb_device_ep_ctx_t * p_ep_dev_ctx, zb_uint8_t new_hue)
 {
-    p_ep_dev_ctx->p_device_ctx->color_control_attr.set_color_info.current_hue = new_hue;
+    p_ep_dev_ctx->p_device_ctx->color_control.attributes.set_color_info.current_hue = new_hue;
 
     zb_update_color_values(p_ep_dev_ctx);
     ble_thingy_master_update_led(&p_ep_dev_ctx->rgb_color);
@@ -246,7 +230,7 @@ static void color_control_set_value_hue(bulb_device_ep_ctx_t * p_ep_dev_ctx, zb_
  */
 static void color_control_set_value_saturation(bulb_device_ep_ctx_t * p_ep_dev_ctx, zb_uint8_t new_saturation)
 {
-    p_ep_dev_ctx->p_device_ctx->color_control_attr.set_color_info.current_saturation = new_saturation;
+    p_ep_dev_ctx->p_device_ctx->color_control.attributes.set_color_info.current_saturation = new_saturation;
 
     zb_update_color_values(p_ep_dev_ctx);
     ble_thingy_master_update_led(&p_ep_dev_ctx->rgb_color);
@@ -256,8 +240,8 @@ static void color_control_set_value_saturation(bulb_device_ep_ctx_t * p_ep_dev_c
 
 void UpdateStateFromXy(zb_uint8_t) {
     auto* p_ep_dev_ctx = &zb_ep_dev_ctx;
-    p_ep_dev_ctx->rgb_color = ConvertXyToRgb(p_ep_dev_ctx->p_device_ctx->color_control_attr.set_color_info.current_X,
-                                             p_ep_dev_ctx->p_device_ctx->color_control_attr.set_color_info.current_Y);
+    p_ep_dev_ctx->rgb_color = ConvertXyToRgb(p_ep_dev_ctx->p_device_ctx->color_control.attributes.set_color_info.current_X,
+                                             p_ep_dev_ctx->p_device_ctx->color_control.attributes.set_color_info.current_Y);
     ble_thingy_master_update_led(&p_ep_dev_ctx->rgb_color);
 }
 
@@ -282,7 +266,7 @@ void color_control_set_value_y(bulb_device_ep_ctx_t * p_ep_dev_ctx)
  */
 static void level_control_set_value(bulb_device_ep_ctx_t * p_ep_dev_ctx, zb_uint16_t new_level)
 {
-    p_ep_dev_ctx->p_device_ctx->level_control_attr.current_level = new_level;
+    p_ep_dev_ctx->p_device_ctx->level_control.SetLevel(new_level);
 
     zb_update_color_values(p_ep_dev_ctx);
     ble_thingy_master_update_led(&p_ep_dev_ctx->rgb_color);
@@ -290,7 +274,7 @@ static void level_control_set_value(bulb_device_ep_ctx_t * p_ep_dev_ctx, zb_uint
     NRF_LOG_INFO("Set level value: %i on endpoint: %hu", new_level, p_ep_dev_ctx->ep_id);
 
     /* According to the table 7.3 of Home Automation Profile Specification v 1.2 rev 29, chapter 7.1.3. */
-    p_ep_dev_ctx->p_device_ctx->on_off_attr.on_off = (new_level ? ZB_TRUE : ZB_FALSE);
+    p_ep_dev_ctx->p_device_ctx->on_off.SetOn(new_level != 0);
 }
 
 
@@ -301,13 +285,13 @@ static void level_control_set_value(bulb_device_ep_ctx_t * p_ep_dev_ctx, zb_uint
  */
 static void on_off_set_value(bulb_device_ep_ctx_t * p_ep_dev_ctx, zb_bool_t on)
 {
-    p_ep_dev_ctx->p_device_ctx->on_off_attr.on_off = on;
+    p_ep_dev_ctx->p_device_ctx->on_off.SetOn(on == ZB_TRUE);
 
     NRF_LOG_INFO("Set ON/OFF value: %i on endpoint: %hu", on, p_ep_dev_ctx->ep_id);
 
     if (on)
     {
-        level_control_set_value(p_ep_dev_ctx, p_ep_dev_ctx->p_device_ctx->level_control_attr.current_level);
+        level_control_set_value(p_ep_dev_ctx, p_ep_dev_ctx->p_device_ctx->level_control.GetLevel());
     }
     else
     {
@@ -323,71 +307,13 @@ static void on_off_set_value(bulb_device_ep_ctx_t * p_ep_dev_ctx, zb_bool_t on)
  * @param[IN]   p_device_ctx   Pointer to structure with device_ctx.
  * @param[IN]   ep_id          Endpoint ID.
  */
-static void bulb_clusters_attr_init(zb_bulb_dev_ctx_t * p_device_ctx, zb_uint8_t ep_id)
+static void bulb_clusters_attr_init(LightLinkColorLight * p_device_ctx, zb_uint8_t ep_id)
 {
-    /* Basic cluster attributes data */
-    p_device_ctx->basic_attr.zcl_version = ZB_ZCL_VERSION;
-    p_device_ctx->basic_attr.app_version = BULB_INIT_BASIC_APP_VERSION;
-    p_device_ctx->basic_attr.stack_version = BULB_INIT_BASIC_STACK_VERSION;
-    p_device_ctx->basic_attr.hw_version = BULB_INIT_BASIC_HW_VERSION;
-
-    /* Use ZB_ZCL_SET_STRING_VAL to set strings, because the first byte should
-     * contain string length without trailing zero.
-     *
-     * For example "test" string wil be encoded as:
-     *   [(0x4), 't', 'e', 's', 't']
-     */
-    ZB_ZCL_SET_STRING_VAL(p_device_ctx->basic_attr.mf_name,
-                          BULB_INIT_BASIC_MANUF_NAME,
-                          ZB_ZCL_STRING_CONST_SIZE(BULB_INIT_BASIC_MANUF_NAME));
-
-    ZB_ZCL_SET_STRING_VAL(p_device_ctx->basic_attr.model_id,
-                          BULB_INIT_BASIC_MODEL_ID,
-                          ZB_ZCL_STRING_CONST_SIZE(BULB_INIT_BASIC_MODEL_ID));
-
-    ZB_ZCL_SET_STRING_VAL(p_device_ctx->basic_attr.date_code,
-                          BULB_INIT_BASIC_DATE_CODE,
-                          ZB_ZCL_STRING_CONST_SIZE(BULB_INIT_BASIC_DATE_CODE));
-
-    p_device_ctx->basic_attr.power_source = BULB_INIT_BASIC_POWER_SOURCE;
-
-    ZB_ZCL_SET_STRING_VAL(p_device_ctx->basic_attr.location_id,
-                          BULB_INIT_BASIC_LOCATION_DESC,
-                          ZB_ZCL_STRING_CONST_SIZE(BULB_INIT_BASIC_LOCATION_DESC));
-
-
-    p_device_ctx->basic_attr.ph_env = BULB_INIT_BASIC_PH_ENV;
-
-    /* Identify cluster attributes data */
-    p_device_ctx->identify_attr.identify_time = ZB_ZCL_IDENTIFY_IDENTIFY_TIME_DEFAULT_VALUE;
-    p_device_ctx->identify_attr.commission_state = ZB_ZCL_ATTR_IDENTIFY_COMMISSION_STATE_HA_ID_DEF_VALUE;
-
-    /* On/Off cluster attributes data */
-    p_device_ctx->on_off_attr.on_off = (zb_bool_t)ZB_ZCL_ON_OFF_IS_ON;
-    p_device_ctx->on_off_attr.global_scene_ctrl = ZB_TRUE;
-    p_device_ctx->on_off_attr.on_time = 0;
-    p_device_ctx->on_off_attr.off_wait_time = 0;
-
-    /* Level control cluster attributes data */
-    p_device_ctx->level_control_attr.current_level = ZB_ZCL_LEVEL_CONTROL_LEVEL_MAX_VALUE; // Set current level value to maximum
-    p_device_ctx->level_control_attr.remaining_time = ZB_ZCL_LEVEL_CONTROL_REMAINING_TIME_DEFAULT_VALUE;
-    ZB_ZCL_LEVEL_CONTROL_SET_ON_OFF_VALUE(ep_id, p_device_ctx->on_off_attr.on_off);
-    ZB_ZCL_LEVEL_CONTROL_SET_LEVEL_VALUE(ep_id, p_device_ctx->level_control_attr.current_level);
-
-    /* Color control cluster attributes data */
-    p_device_ctx->color_control_attr.set_color_info.current_hue = ZB_ZCL_COLOR_CONTROL_HUE_RED;
-    p_device_ctx->color_control_attr.set_color_info.current_saturation = ZB_ZCL_COLOR_CONTROL_CURRENT_SATURATION_MAX_VALUE;
-    /* Set to use hue & saturation */
-    p_device_ctx->color_control_attr.set_color_info.color_mode = ZB_ZCL_COLOR_CONTROL_COLOR_MODE_HUE_SATURATION;
-    p_device_ctx->color_control_attr.set_color_info.color_temperature = ZB_ZCL_COLOR_CONTROL_COLOR_TEMPERATURE_DEF_VALUE;
-    p_device_ctx->color_control_attr.set_color_info.remaining_time = ZB_ZCL_COLOR_CONTROL_REMAINING_TIME_MIN_VALUE;
-    p_device_ctx->color_control_attr.set_color_info.color_capabilities = ZB_ZCL_COLOR_CONTROL_CAPABILITIES_HUE_SATURATION;
-    /* According to ZCL spec 5.2.2.2.1.12 0x00 shall be set when CurrentHue and CurrentSaturation are used. */
-    p_device_ctx->color_control_attr.set_color_info.enhanced_color_mode = 0x00;
-    /* According to 5.2.2.2.1.10 execute commands when device is off. */
-    p_device_ctx->color_control_attr.set_color_info.color_capabilities = ZB_ZCL_COLOR_CONTROL_OPTIONS_EXECUTE_IF_OFF;
-    /* According to ZCL spec 5.2.2.2.2 0xFF shall be set when specific value is unknown. */
-    p_device_ctx->color_control_attr.set_defined_primaries_info.number_primaries = 0xff;
+    p_device_ctx->basic.Init("Color Light");
+    p_device_ctx->identify.Init();
+    p_device_ctx->on_off.Init(ep_id);
+    p_device_ctx->level_control.Init(ep_id);
+    p_device_ctx->color_control.Init();
 }
 
 /**@brief Function for initializing the nrf log module.
@@ -515,7 +441,7 @@ static zb_void_t zcl_device_cb(zb_uint8_t param)
         case ZB_ZCL_LEVEL_CONTROL_SET_VALUE_CB_ID:
             /* Set new value in cluster and then use nrf_app_timer to delay thingy led update if value is changing quickly */
             NRF_LOG_INFO("Level control setting to %d", p_device_cb_param->cb_param.level_control_set_value_param.new_value);
-            p_device_ep_ctx->p_device_ctx->level_control_attr.current_level = p_device_cb_param->cb_param.level_control_set_value_param.new_value;
+            p_device_ep_ctx->p_device_ctx->level_control.SetLevel(p_device_cb_param->cb_param.level_control_set_value_param.new_value);
             break;
 
         case ZB_ZCL_ON_OFF_WITH_EFFECT_VALUE_CB_ID:
@@ -553,7 +479,7 @@ static zb_void_t zcl_device_cb(zb_uint8_t param)
             {
                 // TODO: Ideally, we should do smooth animation instead of waiting
                 // and then switching to final state.
-                if (p_device_ep_ctx->p_device_ctx->color_control_attr.set_color_info.remaining_time <= 1)
+                if (p_device_ep_ctx->p_device_ctx->color_control.attributes.set_color_info.remaining_time <= 1)
                 {
                             const auto& values = p_device_cb_param->cb_param.set_attr_value_param.values;
                     switch (attr_id)

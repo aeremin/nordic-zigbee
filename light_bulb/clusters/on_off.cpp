@@ -30,5 +30,8 @@ void OnOffCluster::SetOn(bool is_on) {
 
 void OnOffCluster::Init(zb_uint8_t endpoint) {
   SetOn(true);
+  attributes.global_scene_ctrl = ZB_TRUE;
+  attributes.on_time = 0;
+  attributes.off_wait_time = 0;
   ZB_ZCL_LEVEL_CONTROL_SET_ON_OFF_VALUE(endpoint, attributes.on_off);
 }
