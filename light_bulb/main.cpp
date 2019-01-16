@@ -46,7 +46,8 @@
  */
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
 #include "zboss_api.h"
@@ -68,12 +69,7 @@ extern "C" {
 #include "nrf_log_ctrl.h"
 #include "nrf_log_default_backends.h"
 
-#include "clusters/basic.h"
-#include "clusters/groups.h"
-#include "clusters/identify.h"
-#include "clusters/level_control.h"
-#include "clusters/on_off.h"
-#include "clusters/scenes.h"
+#include "devices/home_automation_dimmable_light.h"
 #include "color_helpers.h"
 #include "zigbee_color_light.h"
 
@@ -85,34 +81,33 @@ const int kIeeeChannelMask = 1l << 20;
 
 const zb_bool_t kErasePersistentConfigOnRestart = ZB_TRUE;
 
+#define BULB_PWM_NAME PWM1 /**< PWM instance used to drive dimmable light bulb. */
+#define BULB_PWM_TIMER 2   /**< Timer number used by PWM. */
 
-#define BULB_PWM_NAME                     PWM1                                  /**< PWM instance used to drive dimmable light bulb. */
-#define BULB_PWM_TIMER                    2                                     /**< Timer number used by PWM. */
-
-#ifdef  BOARD_PCA10059                                                          /**< If it is Dongle */
-#define ZIGBEE_NETWORK_STATE_LED          BSP_BOARD_LED_0                       /**< LED indicating that light switch successfully joind ZigBee network. */
+#ifdef BOARD_PCA10059                            /**< If it is Dongle */
+#define ZIGBEE_NETWORK_STATE_LED BSP_BOARD_LED_0 /**< LED indicating that light switch successfully joind ZigBee network. */
 #else
-#define ZIGBEE_NETWORK_STATE_LED          BSP_BOARD_LED_2                       /**< LED indicating that light switch successfully joind ZigBee network. */
+#define ZIGBEE_NETWORK_STATE_LED BSP_BOARD_LED_2 /**< LED indicating that light switch successfully joind ZigBee network. */
 #endif
-#define BULB_LED                          BSP_BOARD_LED_3                       /**< LED immitaing dimmable light bulb. */
+#define BULB_LED BSP_BOARD_LED_3 /**< LED immitaing dimmable light bulb. */
 
 /* Declare endpoint for Dimmable Light device with scenes. */
-#define ZB_HA_DECLARE_LIGHT_EP(ep_name, ep_id, cluster_list)                         \
-  ZB_ZCL_DECLARE_HA_DIMMABLE_LIGHT_SIMPLE_DESC(ep_name, ep_id,                       \
-    ZB_HA_DIMMABLE_LIGHT_IN_CLUSTER_NUM, ZB_HA_DIMMABLE_LIGHT_OUT_CLUSTER_NUM);      \
+#define ZB_HA_DECLARE_LIGHT_EP(ep_name, ep_id, cluster_list)                                                                 \
+    ZB_ZCL_DECLARE_HA_DIMMABLE_LIGHT_SIMPLE_DESC(ep_name, ep_id,                                                             \
+                                                 ZB_HA_DIMMABLE_LIGHT_IN_CLUSTER_NUM, ZB_HA_DIMMABLE_LIGHT_OUT_CLUSTER_NUM); \
   ZBOSS_DEVICE_DECLARE_REPORTING_CTX(reporting_info## device_ctx_name,               \
-                                     ZB_HA_DIMMABLE_LIGHT_REPORT_ATTR_COUNT);        \
+                                       ZB_HA_DIMMABLE_LIGHT_REPORT_ATTR_COUNT);                                              \
   ZBOSS_DEVICE_DECLARE_LEVEL_CONTROL_CTX(cvc_alarm_info## device_ctx_name,           \
-                                         ZB_HA_DIMMABLE_LIGHT_CVC_ATTR_COUNT);       \
-  ZB_AF_DECLARE_ENDPOINT_DESC(ep_name, ep_id, ZB_AF_HA_PROFILE_ID,                   \
-                              0,     \
-                              NULL,                 \
+                                           ZB_HA_DIMMABLE_LIGHT_CVC_ATTR_COUNT);                                             \
+    ZB_AF_DECLARE_ENDPOINT_DESC(ep_name, ep_id, ZB_AF_HA_PROFILE_ID,                                                         \
+                                0,                                                                                           \
+                                NULL,                                                                                        \
                               ZB_ZCL_ARRAY_SIZE(cluster_list, zb_zcl_cluster_desc_t),\
-                              cluster_list,                                          \
+                                cluster_list,                                                                                \
                               (zb_af_simple_desc_1_1_t*)&simple_desc_##ep_name,      \
-                              ZB_HA_DIMMABLE_LIGHT_REPORT_ATTR_COUNT,                \
+                                ZB_HA_DIMMABLE_LIGHT_REPORT_ATTR_COUNT,                                                      \
                               reporting_info## device_ctx_name,                      \
-                              ZB_HA_DIMMABLE_LIGHT_CVC_ATTR_COUNT,                   \
+                                ZB_HA_DIMMABLE_LIGHT_CVC_ATTR_COUNT,                                                         \
                               cvc_alarm_info## device_ctx_name)
 
 #if !defined ZB_ROUTER_ROLE
@@ -124,10 +119,10 @@ APP_PWM_INSTANCE(BULB_PWM_NAME, BULB_PWM_TIMER);
 /* Scenes cluster attributes. */
 struct bulb_device_scenes_attr_t
 {
-    zb_uint8_t  scene_count;
-    zb_uint8_t  current_scene;
-    zb_uint8_t  scene_valid;
-    zb_uint8_t  name_support;
+    zb_uint8_t scene_count;
+    zb_uint8_t current_scene;
+    zb_uint8_t scene_valid;
+    zb_uint8_t name_support;
     zb_uint16_t current_group;
 };
 
@@ -137,31 +132,11 @@ struct bulb_device_groups_attr_t
     zb_uint8_t name_support;
 };
 
-/* Main application customizable context. Stores all settings and static values. */
-struct bulb_device_ctx_t
-{
-    BasicCluster basic;
-    IdentifyCluster identify;
-    GroupsCluster groups;
-    ScenesCluster scenes;
-    OnOffCluster on_off;
-    LevelControlCluster level_control;
-};
-
-
-static bulb_device_ctx_t m_dev_ctx;
-
-ZB_HA_DECLARE_DIMMABLE_LIGHT_CLUSTER_LIST(dimmable_light_clusters,
-                                          m_dev_ctx.basic.attributes_list,
-                                          m_dev_ctx.identify.attributes_list,
-                                          m_dev_ctx.groups.attributes_list,
-                                          m_dev_ctx.scenes.attributes_list,
-                                          m_dev_ctx.on_off.attributes_list,
-                                          m_dev_ctx.level_control.attributes_list);
+static HomeAutomationDimmableLight m_dev_ctx;
 
 ZB_HA_DECLARE_LIGHT_EP(dimmable_light_ep,
                        kDimmableLightEndoint,
-                       dimmable_light_clusters);
+                       m_dev_ctx.cluster_descriptors);
 
 /////////////////////////////////////// COLOR LIGHT ///////////////////////////////////////////////////
 
@@ -169,10 +144,10 @@ ZB_HA_DECLARE_LIGHT_EP(dimmable_light_ep,
 struct bulb_device_ep_ctx_t
 {
     zb_bulb_dev_ctx_t         * const p_device_ctx;                 /**< Pointer to structure containing cluster attributes. */
-    RgbColor                    rgb_color;
-    const uint8_t               ep_id;                              /**< Endpoint ID. */
-    zb_bool_t                   value_changing_flag;                /**< Variable used as flag while detecting changing value in Level Control attribute. */
-    uint8_t                     prev_lvl_ctrl_value;                /**< Variable used to store previous attribute value while detecting changing value in Level Control attribute. */
+    RgbColor rgb_color;
+    const uint8_t ep_id;           /**< Endpoint ID. */
+    zb_bool_t value_changing_flag; /**< Variable used as flag while detecting changing value in Level Control attribute. */
+    uint8_t prev_lvl_ctrl_value;   /**< Variable used to store previous attribute value while detecting changing value in Level Control attribute. */
 };
 
 /* Declare context variable and cluster attribute list for first endpoint */
@@ -351,10 +326,10 @@ static void on_off_set_value(bulb_device_ep_ctx_t * p_ep_dev_ctx, zb_bool_t on)
 static void bulb_clusters_attr_init(zb_bulb_dev_ctx_t * p_device_ctx, zb_uint8_t ep_id)
 {
     /* Basic cluster attributes data */
-    p_device_ctx->basic_attr.zcl_version   = ZB_ZCL_VERSION;
-    p_device_ctx->basic_attr.app_version   = BULB_INIT_BASIC_APP_VERSION;
+    p_device_ctx->basic_attr.zcl_version = ZB_ZCL_VERSION;
+    p_device_ctx->basic_attr.app_version = BULB_INIT_BASIC_APP_VERSION;
     p_device_ctx->basic_attr.stack_version = BULB_INIT_BASIC_STACK_VERSION;
-    p_device_ctx->basic_attr.hw_version    = BULB_INIT_BASIC_HW_VERSION;
+    p_device_ctx->basic_attr.hw_version = BULB_INIT_BASIC_HW_VERSION;
 
     /* Use ZB_ZCL_SET_STRING_VAL to set strings, because the first byte should
      * contain string length without trailing zero.
@@ -384,33 +359,33 @@ static void bulb_clusters_attr_init(zb_bulb_dev_ctx_t * p_device_ctx, zb_uint8_t
     p_device_ctx->basic_attr.ph_env = BULB_INIT_BASIC_PH_ENV;
 
     /* Identify cluster attributes data */
-    p_device_ctx->identify_attr.identify_time       = ZB_ZCL_IDENTIFY_IDENTIFY_TIME_DEFAULT_VALUE;
-    p_device_ctx->identify_attr.commission_state    = ZB_ZCL_ATTR_IDENTIFY_COMMISSION_STATE_HA_ID_DEF_VALUE;
+    p_device_ctx->identify_attr.identify_time = ZB_ZCL_IDENTIFY_IDENTIFY_TIME_DEFAULT_VALUE;
+    p_device_ctx->identify_attr.commission_state = ZB_ZCL_ATTR_IDENTIFY_COMMISSION_STATE_HA_ID_DEF_VALUE;
 
     /* On/Off cluster attributes data */
-    p_device_ctx->on_off_attr.on_off                = (zb_bool_t)ZB_ZCL_ON_OFF_IS_ON;
-    p_device_ctx->on_off_attr.global_scene_ctrl     = ZB_TRUE;
-    p_device_ctx->on_off_attr.on_time               = 0;
-    p_device_ctx->on_off_attr.off_wait_time         = 0;
+    p_device_ctx->on_off_attr.on_off = (zb_bool_t)ZB_ZCL_ON_OFF_IS_ON;
+    p_device_ctx->on_off_attr.global_scene_ctrl = ZB_TRUE;
+    p_device_ctx->on_off_attr.on_time = 0;
+    p_device_ctx->on_off_attr.off_wait_time = 0;
 
     /* Level control cluster attributes data */
-    p_device_ctx->level_control_attr.current_level  = ZB_ZCL_LEVEL_CONTROL_LEVEL_MAX_VALUE; // Set current level value to maximum
+    p_device_ctx->level_control_attr.current_level = ZB_ZCL_LEVEL_CONTROL_LEVEL_MAX_VALUE; // Set current level value to maximum
     p_device_ctx->level_control_attr.remaining_time = ZB_ZCL_LEVEL_CONTROL_REMAINING_TIME_DEFAULT_VALUE;
     ZB_ZCL_LEVEL_CONTROL_SET_ON_OFF_VALUE(ep_id, p_device_ctx->on_off_attr.on_off);
     ZB_ZCL_LEVEL_CONTROL_SET_LEVEL_VALUE(ep_id, p_device_ctx->level_control_attr.current_level);
 
     /* Color control cluster attributes data */
-    p_device_ctx->color_control_attr.set_color_info.current_hue         = ZB_ZCL_COLOR_CONTROL_HUE_RED;
-    p_device_ctx->color_control_attr.set_color_info.current_saturation  = ZB_ZCL_COLOR_CONTROL_CURRENT_SATURATION_MAX_VALUE;
+    p_device_ctx->color_control_attr.set_color_info.current_hue = ZB_ZCL_COLOR_CONTROL_HUE_RED;
+    p_device_ctx->color_control_attr.set_color_info.current_saturation = ZB_ZCL_COLOR_CONTROL_CURRENT_SATURATION_MAX_VALUE;
     /* Set to use hue & saturation */
-    p_device_ctx->color_control_attr.set_color_info.color_mode          = ZB_ZCL_COLOR_CONTROL_COLOR_MODE_HUE_SATURATION;
-    p_device_ctx->color_control_attr.set_color_info.color_temperature   = ZB_ZCL_COLOR_CONTROL_COLOR_TEMPERATURE_DEF_VALUE;
-    p_device_ctx->color_control_attr.set_color_info.remaining_time      = ZB_ZCL_COLOR_CONTROL_REMAINING_TIME_MIN_VALUE;
-    p_device_ctx->color_control_attr.set_color_info.color_capabilities  = ZB_ZCL_COLOR_CONTROL_CAPABILITIES_HUE_SATURATION;
+    p_device_ctx->color_control_attr.set_color_info.color_mode = ZB_ZCL_COLOR_CONTROL_COLOR_MODE_HUE_SATURATION;
+    p_device_ctx->color_control_attr.set_color_info.color_temperature = ZB_ZCL_COLOR_CONTROL_COLOR_TEMPERATURE_DEF_VALUE;
+    p_device_ctx->color_control_attr.set_color_info.remaining_time = ZB_ZCL_COLOR_CONTROL_REMAINING_TIME_MIN_VALUE;
+    p_device_ctx->color_control_attr.set_color_info.color_capabilities = ZB_ZCL_COLOR_CONTROL_CAPABILITIES_HUE_SATURATION;
     /* According to ZCL spec 5.2.2.2.1.12 0x00 shall be set when CurrentHue and CurrentSaturation are used. */
     p_device_ctx->color_control_attr.set_color_info.enhanced_color_mode = 0x00;
     /* According to 5.2.2.2.1.10 execute commands when device is off. */
-    p_device_ctx->color_control_attr.set_color_info.color_capabilities  = ZB_ZCL_COLOR_CONTROL_OPTIONS_EXECUTE_IF_OFF;
+    p_device_ctx->color_control_attr.set_color_info.color_capabilities = ZB_ZCL_COLOR_CONTROL_OPTIONS_EXECUTE_IF_OFF;
     /* According to ZCL spec 5.2.2.2.2 0xFF shall be set when specific value is unknown. */
     p_device_ctx->color_control_attr.set_defined_primaries_info.number_primaries = 0xff;
 }
@@ -473,7 +448,7 @@ static void on_off_set_value(zb_bool_t on)
  */
 static void leds_init(void)
 {
-    ret_code_t       err_code;
+    ret_code_t err_code;
     app_pwm_config_t pwm_cfg = APP_PWM_DEFAULT_CONFIG_1CH(5000L, bsp_board_led_idx_to_pin(BULB_LED));
 
     /* Initialize all LEDs. */
@@ -537,84 +512,84 @@ static zb_void_t zcl_device_cb(zb_uint8_t param)
 
         switch (p_device_cb_param->device_cb_id)
         {
-            case ZB_ZCL_LEVEL_CONTROL_SET_VALUE_CB_ID:
-                /* Set new value in cluster and then use nrf_app_timer to delay thingy led update if value is changing quickly */
-                NRF_LOG_INFO("Level control setting to %d", p_device_cb_param->cb_param.level_control_set_value_param.new_value);
-                p_device_ep_ctx->p_device_ctx->level_control_attr.current_level = p_device_cb_param->cb_param.level_control_set_value_param.new_value;
-                break;
+        case ZB_ZCL_LEVEL_CONTROL_SET_VALUE_CB_ID:
+            /* Set new value in cluster and then use nrf_app_timer to delay thingy led update if value is changing quickly */
+            NRF_LOG_INFO("Level control setting to %d", p_device_cb_param->cb_param.level_control_set_value_param.new_value);
+            p_device_ep_ctx->p_device_ctx->level_control_attr.current_level = p_device_cb_param->cb_param.level_control_set_value_param.new_value;
+            break;
 
-            case ZB_ZCL_ON_OFF_WITH_EFFECT_VALUE_CB_ID:
-                NRF_LOG_INFO("Turning off. Additional data: effect_id: %d, effect_variant: %d",
-                    p_device_cb_param->cb_param.on_off_set_effect_value_param.effect_id,
-                    p_device_cb_param->cb_param.on_off_set_effect_value_param.effect_variant);
-                on_off_set_value(p_device_ep_ctx, ZB_FALSE);
-                break;
+        case ZB_ZCL_ON_OFF_WITH_EFFECT_VALUE_CB_ID:
+            NRF_LOG_INFO("Turning off. Additional data: effect_id: %d, effect_variant: %d",
+                         p_device_cb_param->cb_param.on_off_set_effect_value_param.effect_id,
+                         p_device_cb_param->cb_param.on_off_set_effect_value_param.effect_variant);
+            on_off_set_value(p_device_ep_ctx, ZB_FALSE);
+            break;
 
-            case ZB_ZCL_SET_ATTR_VALUE_CB_ID:
+        case ZB_ZCL_SET_ATTR_VALUE_CB_ID:
+        {
+            const zb_uint8_t cluster_id = p_device_cb_param->cb_param.set_attr_value_param.cluster_id;
+            const zb_uint8_t attr_id = p_device_cb_param->cb_param.set_attr_value_param.attr_id;
+            if (cluster_id == ZB_ZCL_CLUSTER_ID_ON_OFF)
+            {
+                uint8_t value = p_device_cb_param->cb_param.set_attr_value_param.values.data8;
+
+                NRF_LOG_INFO("on/off attribute setting to %hd", value);
+                if (attr_id == ZB_ZCL_ATTR_ON_OFF_ON_OFF_ID)
                 {
-                    const zb_uint8_t cluster_id = p_device_cb_param->cb_param.set_attr_value_param.cluster_id;
-                    const zb_uint8_t attr_id    = p_device_cb_param->cb_param.set_attr_value_param.attr_id;
-                    if (cluster_id == ZB_ZCL_CLUSTER_ID_ON_OFF)
-                    {
-                        uint8_t value = p_device_cb_param->cb_param.set_attr_value_param.values.data8;
-
-                        NRF_LOG_INFO("on/off attribute setting to %hd", value);
-                        if (attr_id == ZB_ZCL_ATTR_ON_OFF_ON_OFF_ID)
-                        {
-                            on_off_set_value(p_device_ep_ctx, (zb_bool_t)value);
-                        }
-                    }
-                    else if (cluster_id == ZB_ZCL_CLUSTER_ID_LEVEL_CONTROL)
-                    {
-                        uint16_t value = p_device_cb_param->cb_param.set_attr_value_param.values.data16;
-
-                        NRF_LOG_INFO("level control attribute setting to %hd", value);
-                        if (attr_id == ZB_ZCL_ATTR_LEVEL_CONTROL_CURRENT_LEVEL_ID)
-                        {
-                            level_control_set_value(p_device_ep_ctx, value);
-                        }
-                    }
-                    else if (cluster_id == ZB_ZCL_CLUSTER_ID_COLOR_CONTROL || cluster_id == ZB_ZCL_CLUSTER_ID_BASIC) // Why ZB_ZCL_CLUSTER_ID_BASIC?!
-                    {
-                        // TODO: Ideally, we should do smooth animation instead of waiting
-                        // and then switching to final state.
-                        if (p_device_ep_ctx->p_device_ctx->color_control_attr.set_color_info.remaining_time <= 1)
-                        {
-                            const auto& values = p_device_cb_param->cb_param.set_attr_value_param.values;
-                            switch (attr_id)
-                            {
-                                case ZB_ZCL_ATTR_COLOR_CONTROL_CURRENT_HUE_ID:
-                                    color_control_set_value_hue(p_device_ep_ctx, values.data16);
-                                    break;
-
-                                case ZB_ZCL_ATTR_COLOR_CONTROL_CURRENT_SATURATION_ID:
-                                    color_control_set_value_saturation(p_device_ep_ctx, values.data8);
-                                    break;
-
-                                case ZB_ZCL_ATTR_COLOR_CONTROL_CURRENT_X_ID:
-                                    color_control_set_value_x(p_device_ep_ctx);
-                                    break;
-
-                                case ZB_ZCL_ATTR_COLOR_CONTROL_CURRENT_Y_ID:
-                                    color_control_set_value_y(p_device_ep_ctx);
-                                    break;
-
-                                default:
-                                    NRF_LOG_WARNING("Got request to change unexpected attribute");
-                                    break;
-                            }
-                        }
-                    }
-                    else {
-                        NRF_LOG_WARNING("Unhandled cluster_id: %d", cluster_id);
-                    }
-                    break;
+                    on_off_set_value(p_device_ep_ctx, (zb_bool_t)value);
                 }
+            }
+            else if (cluster_id == ZB_ZCL_CLUSTER_ID_LEVEL_CONTROL)
+            {
+                uint16_t value = p_device_cb_param->cb_param.set_attr_value_param.values.data16;
 
-            default:
-                p_device_cb_param->status = RET_ERROR;
-                NRF_LOG_INFO("Default case, returned error");
-                break;
+                NRF_LOG_INFO("level control attribute setting to %hd", value);
+                if (attr_id == ZB_ZCL_ATTR_LEVEL_CONTROL_CURRENT_LEVEL_ID)
+                {
+                    level_control_set_value(p_device_ep_ctx, value);
+                }
+            }
+            else if (cluster_id == ZB_ZCL_CLUSTER_ID_COLOR_CONTROL || cluster_id == ZB_ZCL_CLUSTER_ID_BASIC) // Why ZB_ZCL_CLUSTER_ID_BASIC?!
+            {
+                // TODO: Ideally, we should do smooth animation instead of waiting
+                // and then switching to final state.
+                if (p_device_ep_ctx->p_device_ctx->color_control_attr.set_color_info.remaining_time <= 1)
+                {
+                            const auto& values = p_device_cb_param->cb_param.set_attr_value_param.values;
+                    switch (attr_id)
+                    {
+                    case ZB_ZCL_ATTR_COLOR_CONTROL_CURRENT_HUE_ID:
+                        color_control_set_value_hue(p_device_ep_ctx, values.data16);
+                        break;
+
+                    case ZB_ZCL_ATTR_COLOR_CONTROL_CURRENT_SATURATION_ID:
+                        color_control_set_value_saturation(p_device_ep_ctx, values.data8);
+                        break;
+
+                    case ZB_ZCL_ATTR_COLOR_CONTROL_CURRENT_X_ID:
+                        color_control_set_value_x(p_device_ep_ctx);
+                        break;
+
+                    case ZB_ZCL_ATTR_COLOR_CONTROL_CURRENT_Y_ID:
+                        color_control_set_value_y(p_device_ep_ctx);
+                        break;
+
+                    default:
+                        NRF_LOG_WARNING("Got request to change unexpected attribute");
+                        break;
+                    }
+                }
+            }
+                    else {
+                NRF_LOG_WARNING("Unhandled cluster_id: %d", cluster_id);
+            }
+            break;
+        }
+
+        default:
+            p_device_cb_param->status = RET_ERROR;
+            NRF_LOG_INFO("Default case, returned error");
+            break;
         }
 
         if (p_device_cb_param->status != 0) {
@@ -630,53 +605,53 @@ static zb_void_t zcl_device_cb(zb_uint8_t param)
 
     switch (p_device_cb_param->device_cb_id)
     {
-        case ZB_ZCL_ON_OFF_WITH_EFFECT_VALUE_CB_ID:
-            NRF_LOG_INFO("Turning off. Additional data: effect_id: %d, effect_variant: %d",
-                p_device_cb_param->cb_param.on_off_set_effect_value_param.effect_id,
-                p_device_cb_param->cb_param.on_off_set_effect_value_param.effect_variant);
-            on_off_set_value(ZB_FALSE);
-            break;
+    case ZB_ZCL_ON_OFF_WITH_EFFECT_VALUE_CB_ID:
+        NRF_LOG_INFO("Turning off. Additional data: effect_id: %d, effect_variant: %d",
+                     p_device_cb_param->cb_param.on_off_set_effect_value_param.effect_id,
+                     p_device_cb_param->cb_param.on_off_set_effect_value_param.effect_variant);
+        on_off_set_value(ZB_FALSE);
+        break;
 
-        case ZB_ZCL_LEVEL_CONTROL_SET_VALUE_CB_ID:
-            NRF_LOG_INFO("Level control setting to %d", p_device_cb_param->cb_param.level_control_set_value_param.new_value);
-            level_control_set_value(p_device_cb_param->cb_param.level_control_set_value_param.new_value);
-            break;
+    case ZB_ZCL_LEVEL_CONTROL_SET_VALUE_CB_ID:
+        NRF_LOG_INFO("Level control setting to %d", p_device_cb_param->cb_param.level_control_set_value_param.new_value);
+        level_control_set_value(p_device_cb_param->cb_param.level_control_set_value_param.new_value);
+        break;
 
         case ZB_ZCL_SET_ATTR_VALUE_CB_ID: {
-                const zb_uint8_t cluster_id = p_device_cb_param->cb_param.set_attr_value_param.cluster_id;
-                const zb_uint8_t attr_id    = p_device_cb_param->cb_param.set_attr_value_param.attr_id;
+        const zb_uint8_t cluster_id = p_device_cb_param->cb_param.set_attr_value_param.cluster_id;
+        const zb_uint8_t attr_id = p_device_cb_param->cb_param.set_attr_value_param.attr_id;
 
-                if (cluster_id == ZB_ZCL_CLUSTER_ID_ON_OFF)
-                {
-                    uint8_t value = p_device_cb_param->cb_param.set_attr_value_param.values.data8;
+        if (cluster_id == ZB_ZCL_CLUSTER_ID_ON_OFF)
+        {
+            uint8_t value = p_device_cb_param->cb_param.set_attr_value_param.values.data8;
 
-                    NRF_LOG_INFO("on/off attribute setting to %hd", value);
-                    if (attr_id == ZB_ZCL_ATTR_ON_OFF_ON_OFF_ID)
-                    {
+            NRF_LOG_INFO("on/off attribute setting to %hd", value);
+            if (attr_id == ZB_ZCL_ATTR_ON_OFF_ON_OFF_ID)
+            {
                         on_off_set_value((zb_bool_t) value);
-                    }
-                }
-                else if (cluster_id == ZB_ZCL_CLUSTER_ID_LEVEL_CONTROL)
-                {
-                    uint16_t value = p_device_cb_param->cb_param.set_attr_value_param.values.data16;
-
-                    NRF_LOG_INFO("level control attribute setting to %hd", value);
-                    if (attr_id == ZB_ZCL_ATTR_LEVEL_CONTROL_CURRENT_LEVEL_ID)
-                    {
-                        level_control_set_value(value);
-                    }
-                }
-                else
-                {
-                    /* Other clusters can be processed here */
-                    NRF_LOG_INFO("Unhandled cluster attribute id: %d", cluster_id);
-                }
-                break;
             }
+        }
+        else if (cluster_id == ZB_ZCL_CLUSTER_ID_LEVEL_CONTROL)
+        {
+            uint16_t value = p_device_cb_param->cb_param.set_attr_value_param.values.data16;
 
-        default:
-            p_device_cb_param->status = RET_ERROR;
-            break;
+            NRF_LOG_INFO("level control attribute setting to %hd", value);
+            if (attr_id == ZB_ZCL_ATTR_LEVEL_CONTROL_CURRENT_LEVEL_ID)
+            {
+                level_control_set_value(value);
+            }
+        }
+        else
+        {
+            /* Other clusters can be processed here */
+            NRF_LOG_INFO("Unhandled cluster attribute id: %d", cluster_id);
+        }
+        break;
+    }
+
+    default:
+        p_device_cb_param->status = RET_ERROR;
+        break;
     }
 
     NRF_LOG_INFO("zcl_device_cb status: %hd", p_device_cb_param->status);
@@ -688,39 +663,39 @@ static zb_void_t zcl_device_cb(zb_uint8_t param)
  */
 void zboss_signal_handler(zb_uint8_t param)
 {
-    zb_zdo_app_signal_type_t sig    = zb_get_app_signal(param, NULL);
-    zb_ret_t                 status = ZB_GET_APP_SIGNAL_STATUS(param);
-    zb_bool_t                comm_status;
+    zb_zdo_app_signal_type_t sig = zb_get_app_signal(param, NULL);
+    zb_ret_t status = ZB_GET_APP_SIGNAL_STATUS(param);
+    zb_bool_t comm_status;
 
     switch (sig)
     {
-        case ZB_BDB_SIGNAL_DEVICE_FIRST_START:
-        case ZB_BDB_SIGNAL_DEVICE_REBOOT:
-            if (status == RET_OK)
-            {
-                NRF_LOG_INFO("Joined network successfully");
-                bsp_board_led_on(ZIGBEE_NETWORK_STATE_LED);
-            }
-            else
-            {
-                NRF_LOG_ERROR("Failed to join network. Status: %d", status);
-                bsp_board_led_off(ZIGBEE_NETWORK_STATE_LED);
-                comm_status = bdb_start_top_level_commissioning(ZB_BDB_NETWORK_STEERING);
-                ZB_COMM_STATUS_CHECK(comm_status);
-            }
-            break;
+    case ZB_BDB_SIGNAL_DEVICE_FIRST_START:
+    case ZB_BDB_SIGNAL_DEVICE_REBOOT:
+        if (status == RET_OK)
+        {
+            NRF_LOG_INFO("Joined network successfully");
+            bsp_board_led_on(ZIGBEE_NETWORK_STATE_LED);
+        }
+        else
+        {
+            NRF_LOG_ERROR("Failed to join network. Status: %d", status);
+            bsp_board_led_off(ZIGBEE_NETWORK_STATE_LED);
+            comm_status = bdb_start_top_level_commissioning(ZB_BDB_NETWORK_STEERING);
+            ZB_COMM_STATUS_CHECK(comm_status);
+        }
+        break;
 
-        case ZB_ZDO_SIGNAL_PRODUCTION_CONFIG_READY:
-            if (status != RET_OK)
-            {
-                NRF_LOG_WARNING("Production config is not present or invalid");
-            }
-            break;
+    case ZB_ZDO_SIGNAL_PRODUCTION_CONFIG_READY:
+        if (status != RET_OK)
+        {
+            NRF_LOG_WARNING("Production config is not present or invalid");
+        }
+        break;
 
-        default:
-            /* Unhandled signal. For more information see: zb_zdo_app_signal_type_e and zb_ret_e */
-            NRF_LOG_INFO("Unhandled signal %d. Status: %d", sig, status);
-            break;
+    default:
+        /* Unhandled signal. For more information see: zb_zdo_app_signal_type_e and zb_ret_e */
+        NRF_LOG_INFO("Unhandled signal %d. Status: %d", sig, status);
+        break;
     }
 
     if (param)
