@@ -19,7 +19,6 @@ extern "C" {
 class BasicCluster {
 public:
   BasicCluster();
-  static BasicCluster& GetInstance();
 
   void Init(const std::string& model_id, zb_zcl_basic_power_source_e power_source=ZB_ZCL_BASIC_POWER_SOURCE_UNKNOWN);
 

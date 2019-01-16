@@ -17,7 +17,6 @@ extern "C" {
 class OnOffCluster {
 public:
   OnOffCluster();
-  static OnOffCluster& GetInstance();
 
   void Init(zb_uint8_t endpoint);
   void SetOn(bool is_on);

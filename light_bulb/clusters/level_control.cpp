@@ -22,11 +22,6 @@ LevelControlCluster::LevelControlCluster() :
   })
 {}
 
-LevelControlCluster& LevelControlCluster::GetInstance() {
-  static LevelControlCluster instance;
-  return instance;
-}
-
 void LevelControlCluster::SetLevel(uint8_t level) {
   attributes.current_level = level;
 }

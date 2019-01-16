@@ -36,12 +36,6 @@ BasicCluster::BasicCluster() : attributes_list({FirstAttribute(),
 {
 }
 
-BasicCluster &BasicCluster::GetInstance()
-{
-  static BasicCluster instance;
-  return instance;
-}
-
 void BasicCluster::Init(const std::string& model_id, zb_zcl_basic_power_source_e power_source)
 {
   /* Basic cluster attributes data */

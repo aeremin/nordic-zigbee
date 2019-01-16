@@ -24,11 +24,6 @@ OnOffCluster::OnOffCluster() :
   })
 {}
 
-OnOffCluster& OnOffCluster::GetInstance() {
-  static OnOffCluster instance;
-  return instance;
-}
-
 void OnOffCluster::SetOn(bool is_on) {
   attributes.on_off = is_on ? ZB_TRUE : ZB_FALSE;
 }

@@ -17,7 +17,6 @@ extern "C" {
 class IdentifyCluster {
 public:
   IdentifyCluster();
-  static IdentifyCluster& GetInstance();
 
   void Init();
 

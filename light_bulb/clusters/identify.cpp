@@ -26,11 +26,6 @@ IdentifyCluster::IdentifyCluster() :
   })
 {}
 
-IdentifyCluster& IdentifyCluster::GetInstance() {
-  static IdentifyCluster instance;
-  return instance;
-}
-
 void IdentifyCluster::Init() {
     attributes.identify_time    = ZB_ZCL_IDENTIFY_IDENTIFY_TIME_DEFAULT_VALUE;
     attributes.commission_state = ZB_ZCL_ATTR_IDENTIFY_COMMISSION_STATE_HA_ID_DEF_VALUE;

@@ -17,7 +17,6 @@ extern "C" {
 class LevelControlCluster {
 public:
   LevelControlCluster();
-  static LevelControlCluster& GetInstance();
 
   void Init(zb_uint8_t endpoint);
   void SetLevel(uint8_t level);

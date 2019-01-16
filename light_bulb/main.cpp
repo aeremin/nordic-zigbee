@@ -138,8 +138,12 @@ struct bulb_device_groups_attr_t
 /* Main application customizable context. Stores all settings and static values. */
 struct bulb_device_ctx_t
 {
-    bulb_device_scenes_attr_t        scenes_attr;
-    bulb_device_groups_attr_t        groups_attr;
+    BasicCluster basic;
+    IdentifyCluster identify;
+    bulb_device_groups_attr_t groups_attr;
+    bulb_device_scenes_attr_t scenes_attr;
+    OnOffCluster on_off;
+    LevelControlCluster level_control;
 };
 
 
@@ -155,12 +159,12 @@ ZB_ZCL_DECLARE_SCENES_ATTRIB_LIST(scenes_attr_list,
                                   &m_dev_ctx.scenes_attr.name_support);
 
 ZB_HA_DECLARE_DIMMABLE_LIGHT_CLUSTER_LIST(dimmable_light_clusters,
-                                          BasicCluster::GetInstance().attributes_list,
-                                          IdentifyCluster::GetInstance().attributes_list,
+                                          m_dev_ctx.basic.attributes_list,
+                                          m_dev_ctx.identify.attributes_list,
                                           groups_attr_list,
                                           scenes_attr_list,
-                                          OnOffCluster::GetInstance().attributes_list,
-                                          LevelControlCluster::GetInstance().attributes_list);
+                                          m_dev_ctx.on_off.attributes_list,
+                                          m_dev_ctx.level_control.attributes_list);
 
 ZB_HA_DECLARE_LIGHT_EP(dimmable_light_ep,
                        kDimmableLightEndoint,
@@ -436,7 +440,7 @@ static void level_control_set_value(uint8_t new_level)
 {
     NRF_LOG_INFO("Set level value: %i", new_level);
 
-    LevelControlCluster::GetInstance().SetLevel(new_level);
+    m_dev_ctx.level_control.SetLevel(new_level);
 
     /* Scale level value: APP_PWM uses 0-100 scale, but ZigBee level control cluster uses values from 0 up to 255. */
     new_level = new_level * 100 / 256;
@@ -447,7 +451,7 @@ static void level_control_set_value(uint8_t new_level)
     }
 
     /* According to the table 7.3 of Home Automation Profile Specification v 1.2 rev 29, chapter 7.1.3. */
-    OnOffCluster::GetInstance().SetOn(new_level == 0);
+    m_dev_ctx.on_off.SetOn(new_level == 0);
 }
 
 /**@brief Function for turning ON/OFF the light bulb.
@@ -456,13 +460,13 @@ static void level_control_set_value(uint8_t new_level)
  */
 static void on_off_set_value(zb_bool_t on)
 {
-    OnOffCluster::GetInstance().SetOn(on == ZB_TRUE);
+    m_dev_ctx.on_off.SetOn(on == ZB_TRUE);
 
     NRF_LOG_INFO("Set ON/OFF value: %i", on);
 
     if (on)
     {
-        level_control_set_value(LevelControlCluster::GetInstance().GetLevel());
+        level_control_set_value(m_dev_ctx.level_control.GetLevel());
     }
     else
     {
@@ -497,10 +501,10 @@ static void leds_init(void)
  */
 static void bulb_clusters_attr_init(void)
 {
-    IdentifyCluster::GetInstance().Init();
-    BasicCluster::GetInstance().Init("DimmableLight");
-    OnOffCluster::GetInstance().Init(kDimmableLightEndoint);
-    LevelControlCluster::GetInstance().Init(kDimmableLightEndoint);
+    m_dev_ctx.identify.Init();
+    m_dev_ctx.basic.Init("DimmableLight");
+    m_dev_ctx.on_off.Init(kDimmableLightEndoint);
+    m_dev_ctx.level_control.Init(kDimmableLightEndoint);
 
     bulb_clusters_attr_init(zb_ep_dev_ctx.p_device_ctx, kColorLightEndpoint);
 }
@@ -771,9 +775,6 @@ int main(void)
     zb_set_nvram_erase_at_start(kErasePersistentConfigOnRestart);
     zb_set_keepalive_timeout(ZB_MILLISECONDS_TO_BEACON_INTERVAL(3000));
 
-    /* Initialize application context structure. */
-    UNUSED_RETURN_VALUE(ZB_MEMSET(&m_dev_ctx, 0, sizeof(m_dev_ctx)));
-
     /* Register callback for handling ZCL commands. */
     ZB_ZCL_REGISTER_DEVICE_CB(zcl_device_cb);
 
@@ -781,7 +782,7 @@ int main(void)
     ZB_AF_REGISTER_DEVICE_CTX(&double_light_ctx);
 
     bulb_clusters_attr_init();
-    level_control_set_value(LevelControlCluster::GetInstance().GetLevel());
+    level_control_set_value(m_dev_ctx.level_control.GetLevel());
 
     /** Start Zigbee Stack. */
     ZB_ERROR_CHECK(zboss_start());
