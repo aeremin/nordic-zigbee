@@ -74,12 +74,15 @@ extern "C" {
 #include "color_helpers.h"
 #include "zigbee_color_light.h"
 
+const int kDimmableLightEndoint = 10;
 const int kColorLightEndpoint = 11;
 
-#define MAX_CHILDREN                      10                                    /**< The maximum amount of connected devices. Setting this value to 0 disables association to this device.  */
-#define IEEE_CHANNEL_MASK                 (1l << ZIGBEE_CHANNEL)                /**< Scan only one, predefined channel to find the coordinator. */
-#define HA_DIMMABLE_LIGHT_ENDPOINT        10                                    /**< Device endpoint, used to receive light controlling commands. */
-#define ERASE_PERSISTENT_CONFIG           ZB_TRUE                              /**< Do not erase NVRAM to save the network parameters after device reboot or power-off. */
+const int kMaxZigbeeChildren = 10;
+const int kIeeeChannelMask = 1l << 20;
+
+const zb_bool_t kErasePersistentConfigOnRestart = ZB_TRUE;
+
+
 #define BULB_PWM_NAME                     PWM1                                  /**< PWM instance used to drive dimmable light bulb. */
 #define BULB_PWM_TIMER                    2                                     /**< Timer number used by PWM. */
 
@@ -172,7 +175,7 @@ ZB_HA_DECLARE_DIMMABLE_LIGHT_CLUSTER_LIST(dimmable_light_clusters,
                                           LevelControlCluster::GetInstance().attributes_list);
 
 ZB_HA_DECLARE_LIGHT_EP(dimmable_light_ep,
-                       HA_DIMMABLE_LIGHT_ENDPOINT,
+                       kDimmableLightEndoint,
                        dimmable_light_clusters);
 
 /////////////////////////////////////// COLOR LIGHT ///////////////////////////////////////////////////
@@ -512,8 +515,8 @@ static void bulb_clusters_attr_init(void)
 
     /* On/Off cluster attributes data */
     BasicCluster::GetInstance().Init("DimmableLight");
-    OnOffCluster::GetInstance().Init(HA_DIMMABLE_LIGHT_ENDPOINT);
-    LevelControlCluster::GetInstance().Init(HA_DIMMABLE_LIGHT_ENDPOINT);
+    OnOffCluster::GetInstance().Init(kDimmableLightEndoint);
+    LevelControlCluster::GetInstance().Init(kDimmableLightEndoint);
 
     bulb_clusters_attr_init(zb_ep_dev_ctx.p_device_ctx, kColorLightEndpoint);
 }
@@ -779,9 +782,9 @@ int main(void)
     zb_set_long_address(ieee_addr);
 
     /* Set static long IEEE address. */
-    zb_set_network_router_role(IEEE_CHANNEL_MASK);
-    zb_set_max_children(MAX_CHILDREN);
-    zb_set_nvram_erase_at_start(ERASE_PERSISTENT_CONFIG);
+    zb_set_network_router_role(kIeeeChannelMask);
+    zb_set_max_children(kMaxZigbeeChildren);
+    zb_set_nvram_erase_at_start(kErasePersistentConfigOnRestart);
     zb_set_keepalive_timeout(ZB_MILLISECONDS_TO_BEACON_INTERVAL(3000));
 
     /* Initialize application context structure. */

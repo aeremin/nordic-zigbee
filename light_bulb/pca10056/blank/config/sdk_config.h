@@ -72,15 +72,6 @@
 // <h> zigbee_stack - ZBOSS ZigBee stack
 
 //==========================================================
-// <o> ZIGBEE_CHANNEL - 802.15.4 channel used by ZigBee  <11-26>
-
-
-// <i> 802.15.4 channel used by ZigBee. Defaults to 16.
-
-#ifndef ZIGBEE_CHANNEL
-#define ZIGBEE_CHANNEL 20
-#endif
-
 // <o> ZIGBEE_TRACE_LEVEL - Trace level of Zigbee stack logs.  <0-4>
 
 
