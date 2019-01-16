@@ -24,7 +24,7 @@ public:
 
   zb_zcl_attr_t attributes_list[13];
 private:
-  zb_dev_basic_attr_t attributes;
+  zb_dev_basic_attr_t attributes = {};
 };
 
 #endif // APP_BASIC

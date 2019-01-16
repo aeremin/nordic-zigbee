@@ -24,7 +24,7 @@ public:
 
   zb_zcl_attr_t attributes_list[5];
 private:
-  zb_dev_level_control_attr_t attributes;
+  zb_dev_level_control_attr_t attributes = {};
   // No idea why it's needed. Was present in ZB_ZCL_DECLARE_LEVEL_CONTROL_ATTRIB_LIST macro
   zb_zcl_level_control_move_status_t move_status;
 };

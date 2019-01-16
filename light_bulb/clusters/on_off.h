@@ -23,7 +23,7 @@ public:
 
   zb_zcl_attr_t attributes_list[6];
 private:
-  zb_dev_on_off_attr_t attributes;
+  zb_dev_on_off_attr_t attributes = {};
 };
 
 #endif // APP_ON_OFF
