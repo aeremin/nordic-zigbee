@@ -68,6 +68,7 @@ extern "C" {
 #include "nrf_log_ctrl.h"
 #include "nrf_log_default_backends.h"
 
+#include "clusters/basic.h"
 #include "clusters/level_control.h"
 #include "clusters/on_off.h"
 #include "color_helpers.h"
@@ -81,17 +82,6 @@ const int kColorLightEndpoint = 11;
 #define ERASE_PERSISTENT_CONFIG           ZB_TRUE                              /**< Do not erase NVRAM to save the network parameters after device reboot or power-off. */
 #define BULB_PWM_NAME                     PWM1                                  /**< PWM instance used to drive dimmable light bulb. */
 #define BULB_PWM_TIMER                    2                                     /**< Timer number used by PWM. */
-
-/* Basic cluster attributes initial values. */
-#define BULB_INIT_BASIC_APP_VERSION       01                                    /**< Version of the application software (1 byte). */
-#define BULB_INIT_BASIC_STACK_VERSION     10                                    /**< Version of the implementation of the ZigBee stack (1 byte). */
-#define BULB_INIT_BASIC_HW_VERSION        11                                    /**< Version of the hardware of the device (1 byte). */
-#define BULB_INIT_BASIC_MANUF_NAME        "Nordic"                              /**< Manufacturer name (32 bytes). */
-// #define BULB_INIT_BASIC_MODEL_ID          "Dimable_Light_v0.1"                  /**< Model number assigned by manufacturer (32-bytes long string). */
-// #define BULB_INIT_BASIC_DATE_CODE         "20180416"                            /**< First 8 bytes specify the date of manufacturer of the device in ISO 8601 format (YYYYMMDD). Th rest (8 bytes) are manufacturer specific. */
-#define BULB_INIT_BASIC_POWER_SOURCE      ZB_ZCL_BASIC_POWER_SOURCE_DC_SOURCE   /**< Type of power sources available for the device. For possible values see section 3.2.2.2.8 of ZCL specification. */
-#define BULB_INIT_BASIC_LOCATION_DESC     "Office desk"                         /**< Describes the physical location of the device (16 bytes). May be modified during commisioning process. */
-// #define BULB_INIT_BASIC_PH_ENV            ZB_ZCL_BASIC_ENV_UNSPECIFIED          /**< Describes the type of physical environment. For possible values see section 3.2.2.2.10 of ZCL specification. */
 
 #ifdef  BOARD_PCA10059                                                          /**< If it is Dongle */
 #define ZIGBEE_NETWORK_STATE_LED          BSP_BOARD_LED_0                       /**< LED indicating that light switch successfully joind ZigBee network. */
@@ -125,21 +115,6 @@ const int kColorLightEndpoint = 11;
 
 APP_PWM_INSTANCE(BULB_PWM_NAME, BULB_PWM_TIMER);
 
-/* Basic cluster attributes. */
-struct bulb_device_basic_attr_t
-{
-    zb_uint8_t zcl_version;
-    zb_uint8_t app_version;
-    zb_uint8_t stack_version;
-    zb_uint8_t hw_version;
-    zb_char_t  mf_name[32];
-    zb_char_t  model_id[32];
-    zb_char_t  date_code[16];
-    zb_uint8_t power_source;
-    zb_char_t  location_id[17];
-    zb_uint8_t ph_env;
-};
-
 /* Identify cluster attributes. */
 struct bulb_device_identify_attr_t
 {
@@ -166,7 +141,6 @@ struct bulb_device_groups_attr_t
 /* Main application customizable context. Stores all settings and static values. */
 struct bulb_device_ctx_t
 {
-    bulb_device_basic_attr_t         basic_attr;
     bulb_device_identify_attr_t      identify_attr;
     bulb_device_scenes_attr_t        scenes_attr;
     bulb_device_groups_attr_t        groups_attr;
@@ -189,20 +163,8 @@ ZB_ZCL_DECLARE_SCENES_ATTRIB_LIST(scenes_attr_list,
                                   &m_dev_ctx.scenes_attr.scene_valid,
                                   &m_dev_ctx.scenes_attr.name_support);
 
-ZB_ZCL_DECLARE_BASIC_ATTRIB_LIST_HA_ADDS_FULL(basic_attr_list,
-                                              &m_dev_ctx.basic_attr.zcl_version,
-                                              &m_dev_ctx.basic_attr.app_version,
-                                              &m_dev_ctx.basic_attr.stack_version,
-                                              &m_dev_ctx.basic_attr.hw_version,
-                                              m_dev_ctx.basic_attr.mf_name,
-                                              m_dev_ctx.basic_attr.model_id,
-                                              m_dev_ctx.basic_attr.date_code,
-                                              &m_dev_ctx.basic_attr.power_source,
-                                              m_dev_ctx.basic_attr.location_id,
-                                              &m_dev_ctx.basic_attr.ph_env);
-
 ZB_HA_DECLARE_DIMMABLE_LIGHT_CLUSTER_LIST(dimmable_light_clusters,
-                                          basic_attr_list,
+                                          BasicCluster::GetInstance().attributes_list,
                                           identify_attr_list,
                                           groups_attr_list,
                                           scenes_attr_list,
@@ -544,44 +506,12 @@ static void leds_init(void)
  */
 static void bulb_clusters_attr_init(void)
 {
-    /* Basic cluster attributes data */
-    m_dev_ctx.basic_attr.zcl_version   = ZB_ZCL_VERSION;
-    m_dev_ctx.basic_attr.app_version   = BULB_INIT_BASIC_APP_VERSION;
-    m_dev_ctx.basic_attr.stack_version = BULB_INIT_BASIC_STACK_VERSION;
-    m_dev_ctx.basic_attr.hw_version    = BULB_INIT_BASIC_HW_VERSION;
-
-    /* Use ZB_ZCL_SET_STRING_VAL to set strings, because the first byte should
-     * contain string length without trailing zero.
-     *
-     * For example "test" string wil be encoded as:
-     *   [(0x4), 't', 'e', 's', 't']
-     */
-    ZB_ZCL_SET_STRING_VAL(m_dev_ctx.basic_attr.mf_name,
-                          BULB_INIT_BASIC_MANUF_NAME,
-                          ZB_ZCL_STRING_CONST_SIZE(BULB_INIT_BASIC_MANUF_NAME));
-
-    ZB_ZCL_SET_STRING_VAL(m_dev_ctx.basic_attr.model_id,
-                          BULB_INIT_BASIC_MODEL_ID,
-                          ZB_ZCL_STRING_CONST_SIZE(BULB_INIT_BASIC_MODEL_ID));
-
-    ZB_ZCL_SET_STRING_VAL(m_dev_ctx.basic_attr.date_code,
-                          BULB_INIT_BASIC_DATE_CODE,
-                          ZB_ZCL_STRING_CONST_SIZE(BULB_INIT_BASIC_DATE_CODE));
-
-    m_dev_ctx.basic_attr.power_source = BULB_INIT_BASIC_POWER_SOURCE;
-
-    ZB_ZCL_SET_STRING_VAL(m_dev_ctx.basic_attr.location_id,
-                          BULB_INIT_BASIC_LOCATION_DESC,
-                          ZB_ZCL_STRING_CONST_SIZE(BULB_INIT_BASIC_LOCATION_DESC));
-
-
-    m_dev_ctx.basic_attr.ph_env = BULB_INIT_BASIC_PH_ENV;
-
     /* Identify cluster attributes data */
     m_dev_ctx.identify_attr.identify_time    = ZB_ZCL_IDENTIFY_IDENTIFY_TIME_DEFAULT_VALUE;
     m_dev_ctx.identify_attr.commission_state = ZB_ZCL_ATTR_IDENTIFY_COMMISSION_STATE_HA_ID_DEF_VALUE;
 
     /* On/Off cluster attributes data */
+    BasicCluster::GetInstance().Init("DimmableLight");
     OnOffCluster::GetInstance().Init(HA_DIMMABLE_LIGHT_ENDPOINT);
     LevelControlCluster::GetInstance().Init(HA_DIMMABLE_LIGHT_ENDPOINT);
 
