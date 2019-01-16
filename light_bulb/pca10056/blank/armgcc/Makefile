@@ -68,6 +68,7 @@ SRC_FILES += \
   $(PROJ_DIR)/clusters/identify.cpp \
   $(PROJ_DIR)/clusters/level_control.cpp \
   $(PROJ_DIR)/clusters/on_off.cpp \
+  $(PROJ_DIR)/clusters/scenes.cpp \
   $(PROJ_DIR)/color_helpers.cpp \
   $(SDK_ROOT)/modules/nrfx/mdk/system_nrf52840.c \
 

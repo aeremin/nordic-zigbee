@@ -72,6 +72,7 @@ extern "C" {
 #include "clusters/identify.h"
 #include "clusters/level_control.h"
 #include "clusters/on_off.h"
+#include "clusters/scenes.h"
 #include "color_helpers.h"
 #include "zigbee_color_light.h"
 
@@ -141,7 +142,7 @@ struct bulb_device_ctx_t
     BasicCluster basic;
     IdentifyCluster identify;
     bulb_device_groups_attr_t groups_attr;
-    bulb_device_scenes_attr_t scenes_attr;
+    ScenesCluster scenes;
     OnOffCluster on_off;
     LevelControlCluster level_control;
 };
@@ -151,18 +152,11 @@ static bulb_device_ctx_t m_dev_ctx;
 
 ZB_ZCL_DECLARE_GROUPS_ATTRIB_LIST(groups_attr_list, &m_dev_ctx.groups_attr.name_support);
 
-ZB_ZCL_DECLARE_SCENES_ATTRIB_LIST(scenes_attr_list,
-                                  &m_dev_ctx.scenes_attr.scene_count,
-                                  &m_dev_ctx.scenes_attr.current_scene,
-                                  &m_dev_ctx.scenes_attr.current_group,
-                                  &m_dev_ctx.scenes_attr.scene_valid,
-                                  &m_dev_ctx.scenes_attr.name_support);
-
 ZB_HA_DECLARE_DIMMABLE_LIGHT_CLUSTER_LIST(dimmable_light_clusters,
                                           m_dev_ctx.basic.attributes_list,
                                           m_dev_ctx.identify.attributes_list,
                                           groups_attr_list,
-                                          scenes_attr_list,
+                                          m_dev_ctx.scenes.attributes_list,
                                           m_dev_ctx.on_off.attributes_list,
                                           m_dev_ctx.level_control.attributes_list);
 
