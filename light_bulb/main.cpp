@@ -69,6 +69,7 @@ extern "C" {
 #include "nrf_log_default_backends.h"
 
 #include "clusters/basic.h"
+#include "clusters/groups.h"
 #include "clusters/identify.h"
 #include "clusters/level_control.h"
 #include "clusters/on_off.h"
@@ -141,7 +142,7 @@ struct bulb_device_ctx_t
 {
     BasicCluster basic;
     IdentifyCluster identify;
-    bulb_device_groups_attr_t groups_attr;
+    GroupsCluster groups;
     ScenesCluster scenes;
     OnOffCluster on_off;
     LevelControlCluster level_control;
@@ -150,12 +151,10 @@ struct bulb_device_ctx_t
 
 static bulb_device_ctx_t m_dev_ctx;
 
-ZB_ZCL_DECLARE_GROUPS_ATTRIB_LIST(groups_attr_list, &m_dev_ctx.groups_attr.name_support);
-
 ZB_HA_DECLARE_DIMMABLE_LIGHT_CLUSTER_LIST(dimmable_light_clusters,
                                           m_dev_ctx.basic.attributes_list,
                                           m_dev_ctx.identify.attributes_list,
-                                          groups_attr_list,
+                                          m_dev_ctx.groups.attributes_list,
                                           m_dev_ctx.scenes.attributes_list,
                                           m_dev_ctx.on_off.attributes_list,
                                           m_dev_ctx.level_control.attributes_list);

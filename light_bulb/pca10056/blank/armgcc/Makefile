@@ -65,6 +65,7 @@ SRC_FILES += \
   $(PROJ_DIR)/main.cpp \
   $(PROJ_DIR)/clusters/commons.cpp \
   $(PROJ_DIR)/clusters/basic.cpp \
+  $(PROJ_DIR)/clusters/groups.cpp \
   $(PROJ_DIR)/clusters/identify.cpp \
   $(PROJ_DIR)/clusters/level_control.cpp \
   $(PROJ_DIR)/clusters/on_off.cpp \
