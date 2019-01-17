@@ -264,7 +264,7 @@ void color_control_set_value_y(bulb_device_ep_ctx_t * p_ep_dev_ctx)
  * @param[IN] p_ep_dev_ctx Pointer to endpoint device ctx.
  * @param[IN] new_level    Light bulb brightness value.
  */
-static void level_control_set_value(bulb_device_ep_ctx_t * p_ep_dev_ctx, zb_uint16_t new_level)
+static void level_control_set_value(bulb_device_ep_ctx_t * p_ep_dev_ctx, uint8_t new_level)
 {
     p_ep_dev_ctx->p_device_ctx->level_control.SetLevel(new_level);
 

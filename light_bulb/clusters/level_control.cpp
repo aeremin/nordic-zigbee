@@ -26,7 +26,7 @@ void LevelControlCluster::SetLevel(uint8_t level) {
   attributes.current_level = level;
 }
 
-uint16_t LevelControlCluster::GetLevel() const {
+uint8_t LevelControlCluster::GetLevel() const {
   return attributes.current_level;
 }
 

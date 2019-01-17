@@ -20,7 +20,7 @@ public:
 
   void Init(zb_uint8_t endpoint);
   void SetLevel(uint8_t level);
-  uint16_t GetLevel() const;
+  uint8_t GetLevel() const;
 
   zb_zcl_attr_t attributes_list[5];
 private:
