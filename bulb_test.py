@@ -98,7 +98,6 @@ class TestLightIsDiscoverable(unittest.TestCase):
 
   @classmethod
   def tearDownClass(cls):
-    cls.helper.removeAllLights()
     del cls.localUart
     del cls.remoteUart
 
