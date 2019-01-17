@@ -24,6 +24,8 @@ class HomeAutomationDimmableLight
 public:
     HomeAutomationDimmableLight();
 
+    void Init(const std::string& name, zb_uint8_t endpoint);
+
     BasicCluster basic;
     IdentifyCluster identify;
     GroupsCluster groups;

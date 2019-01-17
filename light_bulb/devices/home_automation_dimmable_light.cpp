@@ -40,3 +40,10 @@ HomeAutomationDimmableLight::HomeAutomationDimmableLight() :
         ZB_ZCL_MANUF_CODE_INVALID)})
 {
 }
+
+void HomeAutomationDimmableLight::Init(const std::string& name, zb_uint8_t endpoint) {
+    identify.Init();
+    basic.Init(name);
+    on_off.Init(endpoint);
+    level_control.Init(endpoint);
+}

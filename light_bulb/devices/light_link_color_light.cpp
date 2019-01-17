@@ -46,3 +46,11 @@ LightLinkColorLight::LightLinkColorLight() :
         ZB_ZCL_MANUF_CODE_INVALID)})
 {
 }
+
+void LightLinkColorLight::Init(const std::string& name, zb_uint8_t endpoint) {
+    basic.Init(name);
+    identify.Init();
+    on_off.Init(endpoint);
+    level_control.Init(endpoint);
+    color_control.Init();
+}

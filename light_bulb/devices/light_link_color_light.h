@@ -1,6 +1,8 @@
 #ifndef DEVICES_LIGHT_LINK_COLOR_LIGHT
 #define DEVICES_LIGHT_LINK_COLOR_LIGHT
 
+#include <string>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -24,6 +26,8 @@ class LightLinkColorLight
 {
 public:
     LightLinkColorLight();
+
+    void Init(const std::string& name, zb_uint8_t endpoint);
 
     BasicCluster basic;
     IdentifyCluster identify;

@@ -302,20 +302,6 @@ static void on_off_set_value(bulb_device_ep_ctx_t * p_ep_dev_ctx, zb_bool_t on)
     }
 }
 
-/**@brief Function for initializing clusters attributes.
- *
- * @param[IN]   p_device_ctx   Pointer to structure with device_ctx.
- * @param[IN]   ep_id          Endpoint ID.
- */
-static void bulb_clusters_attr_init(LightLinkColorLight * p_device_ctx, zb_uint8_t ep_id)
-{
-    p_device_ctx->basic.Init("Color Light");
-    p_device_ctx->identify.Init();
-    p_device_ctx->on_off.Init(ep_id);
-    p_device_ctx->level_control.Init(ep_id);
-    p_device_ctx->color_control.Init();
-}
-
 /**@brief Function for initializing the nrf log module.
  */
 static void log_init(void)
@@ -393,15 +379,12 @@ static void leds_init(void)
 
 /**@brief Function for initializing all clusters attributes.
  */
-static void bulb_clusters_attr_init(void)
+static void InitDevices()
 {
-    m_dev_ctx.identify.Init();
-    m_dev_ctx.basic.Init("DimmableLight");
-    m_dev_ctx.on_off.Init(kDimmableLightEndoint);
-    m_dev_ctx.level_control.Init(kDimmableLightEndoint);
-
-    bulb_clusters_attr_init(zb_ep_dev_ctx.p_device_ctx, kColorLightEndpoint);
+    m_dev_ctx.Init("Dimmable Light", kDimmableLightEndoint);
+    zb_dev_ctx_first.Init("Color Light", kColorLightEndpoint);
 }
+
 
 /**@brief Function which tries to sleep down the MCU
  *
@@ -675,7 +658,7 @@ int main(void)
     /* Register dimmer switch device context (endpoints). */
     ZB_AF_REGISTER_DEVICE_CTX(&double_light_ctx);
 
-    bulb_clusters_attr_init();
+    InitDevices();
     level_control_set_value(m_dev_ctx.level_control.GetLevel());
 
     /** Start Zigbee Stack. */
