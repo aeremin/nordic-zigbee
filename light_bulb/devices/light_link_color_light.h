@@ -9,6 +9,7 @@ extern "C" {
 
 #include "zboss_api.h"
 #include "zb_zcl_common.h"
+#include "nrf_serial.h"
 
 #ifdef __cplusplus
 }
@@ -21,14 +22,28 @@ extern "C" {
 #include "clusters/level_control.h"
 #include "clusters/on_off.h"
 #include "clusters/scenes.h"
+#include "color_helpers.h"
 
 class LightLinkColorLight
 {
 public:
-    LightLinkColorLight();
+    LightLinkColorLight(const nrf_serial_t* serial);
 
     void Init(const std::string& name, zb_uint8_t endpoint);
 
+    void SetBrightness(uint8_t brightness);
+    void SetHue(uint8_t hue);
+    void SetSaturation(uint8_t saturation);
+
+    void SetOn(bool is_on);
+
+    // TODO: Remove it
+    uint16_t GetRemainingTime() const;
+
+    void RecalculateRgbFromXy();
+
+    zb_zcl_cluster_desc_t cluster_descriptors[7];
+private:
     BasicCluster basic;
     IdentifyCluster identify;
     GroupsCluster groups;
@@ -37,7 +52,11 @@ public:
     LevelControlCluster level_control;
     ColorControlCluster color_control;
 
-    zb_zcl_cluster_desc_t cluster_descriptors[7];
+    RgbColor color;
+    const nrf_serial_t* serial;
+
+    void RecalculateRgbFromHsb();
+    void SendColorUpdate();
 };
 
 #endif // DEVICES_LIGHT_LINK_COLOR_LIGHT

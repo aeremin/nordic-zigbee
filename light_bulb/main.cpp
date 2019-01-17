@@ -92,62 +92,6 @@ const zb_bool_t kErasePersistentConfigOnRestart = ZB_TRUE;
 #endif
 #define BULB_LED BSP_BOARD_LED_3 /**< LED immitaing dimmable light bulb. */
 
-/* Declare endpoint for Dimmable Light device with scenes. */
-#define ZB_HA_DECLARE_LIGHT_EP(ep_name, ep_id, cluster_list)                                                                 \
-    ZB_ZCL_DECLARE_HA_DIMMABLE_LIGHT_SIMPLE_DESC(ep_name, ep_id,                                                             \
-                                                 ZB_HA_DIMMABLE_LIGHT_IN_CLUSTER_NUM, ZB_HA_DIMMABLE_LIGHT_OUT_CLUSTER_NUM); \
-  ZBOSS_DEVICE_DECLARE_REPORTING_CTX(reporting_info## device_ctx_name,               \
-                                       ZB_HA_DIMMABLE_LIGHT_REPORT_ATTR_COUNT);                                              \
-  ZBOSS_DEVICE_DECLARE_LEVEL_CONTROL_CTX(cvc_alarm_info## device_ctx_name,           \
-                                           ZB_HA_DIMMABLE_LIGHT_CVC_ATTR_COUNT);                                             \
-    ZB_AF_DECLARE_ENDPOINT_DESC(ep_name, ep_id, ZB_AF_HA_PROFILE_ID,                                                         \
-                                0,                                                                                           \
-                                NULL,                                                                                        \
-                              ZB_ZCL_ARRAY_SIZE(cluster_list, zb_zcl_cluster_desc_t),\
-                                cluster_list,                                                                                \
-                              (zb_af_simple_desc_1_1_t*)&simple_desc_##ep_name,      \
-                                ZB_HA_DIMMABLE_LIGHT_REPORT_ATTR_COUNT,                                                      \
-                              reporting_info## device_ctx_name,                      \
-                                ZB_HA_DIMMABLE_LIGHT_CVC_ATTR_COUNT,                                                         \
-                              cvc_alarm_info## device_ctx_name)
-
-#if !defined ZB_ROUTER_ROLE
-#error Define ZB_ROUTER_ROLE to compile light bulb (Router) source code.
-#endif
-
-APP_PWM_INSTANCE(BULB_PWM_NAME, BULB_PWM_TIMER);
-
-static HomeAutomationDimmableLight m_dev_ctx;
-static LightLinkColorLight zb_dev_ctx_first;
-
-ZB_HA_DECLARE_LIGHT_EP(dimmable_light_ep,
-                       kDimmableLightEndoint,
-                       m_dev_ctx.cluster_descriptors);
-
-/////////////////////////////////////// COLOR LIGHT ///////////////////////////////////////////////////
-
-/* Structure to store zigbee endpoint related variables */
-struct bulb_device_ep_ctx_t
-{
-    LightLinkColorLight         * const p_device_ctx;                 /**< Pointer to structure containing cluster attributes. */
-    RgbColor rgb_color;
-    const uint8_t ep_id;           /**< Endpoint ID. */
-    zb_bool_t value_changing_flag; /**< Variable used as flag while detecting changing value in Level Control attribute. */
-    uint8_t prev_lvl_ctrl_value;   /**< Variable used to store previous attribute value while detecting changing value in Level Control attribute. */
-};
-
-/* Declare context variable and cluster attribute list for first endpoint */
-ZB_ZCL_DECLARE_COLOR_LIGHT_EP(color_light_bulb_ep_first, kColorLightEndpoint, zb_dev_ctx_first.cluster_descriptors);
-ZBOSS_DECLARE_DEVICE_CTX_2_EP(double_light_ctx, dimmable_light_ep, color_light_bulb_ep_first);
-
-static bulb_device_ep_ctx_t zb_ep_dev_ctx = {
-    &zb_dev_ctx_first,
-    {0, 0, 0},
-    kColorLightEndpoint,
-    ZB_FALSE,
-    0
-};
-
 ///////////////////// UART ////////////////////////
 static void sleep_handler(void)
 {
@@ -183,66 +127,66 @@ NRF_SERIAL_CONFIG_DEF(serial0_config, NRF_SERIAL_MODE_DMA,
                       &serial0_queues, &serial0_buffs, NULL, sleep_handler);
 
 NRF_SERIAL_UART_DEF(serial0_uarte, 1);
+///////////////////// UART ////////////////////////
 
-/**@brief Function for updating RGB color value.
- *
- * @param[IN] p_ep_dev_ctx pointer to endpoint device ctx.
- */
-static void zb_update_color_values(bulb_device_ep_ctx_t * p_ep_dev_ctx)
+/* Declare endpoint for Dimmable Light device with scenes. */
+#define ZB_HA_DECLARE_LIGHT_EP(ep_name, ep_id, cluster_list)                                                                 \
+    ZB_ZCL_DECLARE_HA_DIMMABLE_LIGHT_SIMPLE_DESC(ep_name, ep_id,                                                             \
+                                                 ZB_HA_DIMMABLE_LIGHT_IN_CLUSTER_NUM, ZB_HA_DIMMABLE_LIGHT_OUT_CLUSTER_NUM); \
+  ZBOSS_DEVICE_DECLARE_REPORTING_CTX(reporting_info## device_ctx_name,               \
+                                       ZB_HA_DIMMABLE_LIGHT_REPORT_ATTR_COUNT);                                              \
+  ZBOSS_DEVICE_DECLARE_LEVEL_CONTROL_CTX(cvc_alarm_info## device_ctx_name,           \
+                                           ZB_HA_DIMMABLE_LIGHT_CVC_ATTR_COUNT);                                             \
+    ZB_AF_DECLARE_ENDPOINT_DESC(ep_name, ep_id, ZB_AF_HA_PROFILE_ID,                                                         \
+                                0,                                                                                           \
+                                NULL,                                                                                        \
+                              ZB_ZCL_ARRAY_SIZE(cluster_list, zb_zcl_cluster_desc_t),\
+                                cluster_list,                                                                                \
+                              (zb_af_simple_desc_1_1_t*)&simple_desc_##ep_name,      \
+                                ZB_HA_DIMMABLE_LIGHT_REPORT_ATTR_COUNT,                                                      \
+                              reporting_info## device_ctx_name,                      \
+                                ZB_HA_DIMMABLE_LIGHT_CVC_ATTR_COUNT,                                                         \
+                              cvc_alarm_info## device_ctx_name)
+
+#if !defined ZB_ROUTER_ROLE
+#error Define ZB_ROUTER_ROLE to compile light bulb (Router) source code.
+#endif
+
+APP_PWM_INSTANCE(BULB_PWM_NAME, BULB_PWM_TIMER);
+
+static HomeAutomationDimmableLight m_dev_ctx;
+static LightLinkColorLight zb_dev_ctx_first(&serial0_uarte);
+
+ZB_HA_DECLARE_LIGHT_EP(dimmable_light_ep,
+                       kDimmableLightEndoint,
+                       m_dev_ctx.cluster_descriptors);
+
+/////////////////////////////////////// COLOR LIGHT ///////////////////////////////////////////////////
+
+/* Structure to store zigbee endpoint related variables */
+struct bulb_device_ep_ctx_t
 {
-    if ((p_ep_dev_ctx == NULL) || (p_ep_dev_ctx->p_device_ctx == NULL))
-    {
-        NRF_LOG_INFO("Can not update color values - bulb_device_ep_ctx uninitialised");
-        return;
-    }
-    p_ep_dev_ctx->rgb_color = ConvertHsbToRgb(p_ep_dev_ctx->p_device_ctx->color_control.attributes.set_color_info.current_hue,
-                                              p_ep_dev_ctx->p_device_ctx->color_control.attributes.set_color_info.current_saturation,
-                                              p_ep_dev_ctx->p_device_ctx->level_control.GetLevel());
-}
+    LightLinkColorLight         * const p_device_ctx;                 /**< Pointer to structure containing cluster attributes. */
+    RgbColor rgb_color;
+    const uint8_t ep_id;           /**< Endpoint ID. */
+    zb_bool_t value_changing_flag; /**< Variable used as flag while detecting changing value in Level Control attribute. */
+    uint8_t prev_lvl_ctrl_value;   /**< Variable used to store previous attribute value while detecting changing value in Level Control attribute. */
+};
 
-void SetRgbColor(const RgbColor& color) {
-    NRF_LOG_INFO("Setting color to %d %d %d", color.r_value, color.g_value, color.b_value);
-    char buffer[20]; // Maximal string is 'RGB 255 255 255\n\r\0' which is 18 symbols
-    int n = sprintf(buffer, "RGB %d %d %d\n\r", color.r_value,color.g_value, color.b_value);
-    nrf_serial_write(&serial0_uarte, buffer, n, nullptr, NRF_SERIAL_MAX_TIMEOUT);
-    nrf_serial_flush(&serial0_uarte, NRF_SERIAL_MAX_TIMEOUT);
-}
+/* Declare context variable and cluster attribute list for first endpoint */
+ZB_ZCL_DECLARE_COLOR_LIGHT_EP(color_light_bulb_ep_first, kColorLightEndpoint, zb_dev_ctx_first.cluster_descriptors);
+ZBOSS_DECLARE_DEVICE_CTX_2_EP(double_light_ctx, dimmable_light_ep, color_light_bulb_ep_first);
 
-/**@brief Function for changing the hue of the light bulb.
- *
- * @param[IN] p_ep_dev_ctx  Pointer to endpoint device ctx.
- * @param[IN] new_hue       New value for hue.
- */
-static void color_control_set_value_hue(bulb_device_ep_ctx_t * p_ep_dev_ctx, zb_uint8_t new_hue)
-{
-    p_ep_dev_ctx->p_device_ctx->color_control.attributes.set_color_info.current_hue = new_hue;
-
-    zb_update_color_values(p_ep_dev_ctx);
-    SetRgbColor(p_ep_dev_ctx->rgb_color);
-
-    NRF_LOG_INFO("Set color hue value: %i on endpoint: %hu", new_hue, p_ep_dev_ctx->ep_id);
-}
-
-/**@brief Function for changing the saturation of the light bulb.
- *
- * @param[IN] p_ep_dev_ctx   pointer to endpoint device ctx.
- * @param[IN] new_saturation new value for saturation.
- */
-static void color_control_set_value_saturation(bulb_device_ep_ctx_t * p_ep_dev_ctx, zb_uint8_t new_saturation)
-{
-    p_ep_dev_ctx->p_device_ctx->color_control.attributes.set_color_info.current_saturation = new_saturation;
-
-    zb_update_color_values(p_ep_dev_ctx);
-    SetRgbColor(p_ep_dev_ctx->rgb_color);
-
-    NRF_LOG_INFO("Set color saturation value: %i on endpoint: %hu", new_saturation, p_ep_dev_ctx->ep_id);
-}
+static bulb_device_ep_ctx_t zb_ep_dev_ctx = {
+    &zb_dev_ctx_first,
+    {0, 0, 0},
+    kColorLightEndpoint,
+    ZB_FALSE,
+    0
+};
 
 void UpdateStateFromXy(zb_uint8_t) {
-    auto* p_ep_dev_ctx = &zb_ep_dev_ctx;
-    p_ep_dev_ctx->rgb_color = ConvertXyToRgb(p_ep_dev_ctx->p_device_ctx->color_control.attributes.set_color_info.current_X,
-                                             p_ep_dev_ctx->p_device_ctx->color_control.attributes.set_color_info.current_Y);
-    SetRgbColor(p_ep_dev_ctx->rgb_color);
+    zb_ep_dev_ctx.p_device_ctx->RecalculateRgbFromXy();
 }
 
 void color_control_set_value_x(bulb_device_ep_ctx_t * p_ep_dev_ctx)
@@ -257,49 +201,6 @@ void color_control_set_value_y(bulb_device_ep_ctx_t * p_ep_dev_ctx)
     // For whatever reason, ZBoss updates set_color_info.current_X and set_color_info.current_Y
     // after this callback is called (not before!). So we need to schedule an alarm.
     ZB_SCHEDULE_ALARM(UpdateStateFromXy, /* unused */ 0, /* ASAP */ 1);
-}
-
-/**@brief Function for setting the light bulb brightness.
- *
- * @param[IN] p_ep_dev_ctx Pointer to endpoint device ctx.
- * @param[IN] new_level    Light bulb brightness value.
- */
-static void level_control_set_value(bulb_device_ep_ctx_t * p_ep_dev_ctx, uint8_t new_level)
-{
-    p_ep_dev_ctx->p_device_ctx->level_control.SetLevel(new_level);
-
-    zb_update_color_values(p_ep_dev_ctx);
-    SetRgbColor(p_ep_dev_ctx->rgb_color);
-
-    NRF_LOG_INFO("Set level value: %i on endpoint: %hu", new_level, p_ep_dev_ctx->ep_id);
-
-    /* According to the table 7.3 of Home Automation Profile Specification v 1.2 rev 29, chapter 7.1.3. */
-    p_ep_dev_ctx->p_device_ctx->on_off.SetOn(new_level != 0);
-}
-
-
-/**@brief Function for turning ON/OFF the light bulb.
- *
- * @param[IN] p_ep_dev_ctx Pointer to endpoint device ctx.
- * @param[IN] on           Boolean light bulb state.
- */
-static void on_off_set_value(bulb_device_ep_ctx_t * p_ep_dev_ctx, zb_bool_t on)
-{
-    p_ep_dev_ctx->p_device_ctx->on_off.SetOn(on == ZB_TRUE);
-
-    NRF_LOG_INFO("Set ON/OFF value: %i on endpoint: %hu", on, p_ep_dev_ctx->ep_id);
-
-    if (on)
-    {
-        level_control_set_value(p_ep_dev_ctx, p_ep_dev_ctx->p_device_ctx->level_control.GetLevel());
-    }
-    else
-    {
-        p_ep_dev_ctx->rgb_color.r_value = 0;
-        p_ep_dev_ctx->rgb_color.g_value = 0;
-        p_ep_dev_ctx->rgb_color.b_value = 0;
-        SetRgbColor(p_ep_dev_ctx->rgb_color);
-    }
 }
 
 /**@brief Function for initializing the nrf log module.
@@ -424,14 +325,14 @@ static zb_void_t zcl_device_cb(zb_uint8_t param)
         case ZB_ZCL_LEVEL_CONTROL_SET_VALUE_CB_ID:
             /* Set new value in cluster and then use nrf_app_timer to delay thingy led update if value is changing quickly */
             NRF_LOG_INFO("Level control setting to %d", p_device_cb_param->cb_param.level_control_set_value_param.new_value);
-            p_device_ep_ctx->p_device_ctx->level_control.SetLevel(p_device_cb_param->cb_param.level_control_set_value_param.new_value);
+            p_device_ep_ctx->p_device_ctx->SetBrightness(p_device_cb_param->cb_param.level_control_set_value_param.new_value);
             break;
 
         case ZB_ZCL_ON_OFF_WITH_EFFECT_VALUE_CB_ID:
             NRF_LOG_INFO("Turning off. Additional data: effect_id: %d, effect_variant: %d",
                          p_device_cb_param->cb_param.on_off_set_effect_value_param.effect_id,
                          p_device_cb_param->cb_param.on_off_set_effect_value_param.effect_variant);
-            on_off_set_value(p_device_ep_ctx, ZB_FALSE);
+            p_device_ep_ctx->p_device_ctx->SetOn(false);
             break;
 
         case ZB_ZCL_SET_ATTR_VALUE_CB_ID:
@@ -445,7 +346,7 @@ static zb_void_t zcl_device_cb(zb_uint8_t param)
                 NRF_LOG_INFO("on/off attribute setting to %hd", value);
                 if (attr_id == ZB_ZCL_ATTR_ON_OFF_ON_OFF_ID)
                 {
-                    on_off_set_value(p_device_ep_ctx, (zb_bool_t)value);
+                    p_device_ep_ctx->p_device_ctx->SetOn(value);
                 }
             }
             else if (cluster_id == ZB_ZCL_CLUSTER_ID_LEVEL_CONTROL)
@@ -455,24 +356,24 @@ static zb_void_t zcl_device_cb(zb_uint8_t param)
                 NRF_LOG_INFO("level control attribute setting to %hd", value);
                 if (attr_id == ZB_ZCL_ATTR_LEVEL_CONTROL_CURRENT_LEVEL_ID)
                 {
-                    level_control_set_value(p_device_ep_ctx, value);
+                    p_device_ep_ctx->p_device_ctx->SetBrightness(value);
                 }
             }
             else if (cluster_id == ZB_ZCL_CLUSTER_ID_COLOR_CONTROL || cluster_id == ZB_ZCL_CLUSTER_ID_BASIC) // Why ZB_ZCL_CLUSTER_ID_BASIC?!
             {
                 // TODO: Ideally, we should do smooth animation instead of waiting
                 // and then switching to final state.
-                if (p_device_ep_ctx->p_device_ctx->color_control.attributes.set_color_info.remaining_time <= 1)
+                if (p_device_ep_ctx->p_device_ctx->GetRemainingTime() <= 1)
                 {
                             const auto& values = p_device_cb_param->cb_param.set_attr_value_param.values;
                     switch (attr_id)
                     {
                     case ZB_ZCL_ATTR_COLOR_CONTROL_CURRENT_HUE_ID:
-                        color_control_set_value_hue(p_device_ep_ctx, values.data16);
+                        p_device_ep_ctx->p_device_ctx->SetHue(values.data16);
                         break;
 
                     case ZB_ZCL_ATTR_COLOR_CONTROL_CURRENT_SATURATION_ID:
-                        color_control_set_value_saturation(p_device_ep_ctx, values.data8);
+                        p_device_ep_ctx->p_device_ctx->SetHue(values.data8);
                         break;
 
                     case ZB_ZCL_ATTR_COLOR_CONTROL_CURRENT_X_ID:
