@@ -331,7 +331,7 @@ static void level_control_set_value(uint8_t new_level)
     }
 
     /* According to the table 7.3 of Home Automation Profile Specification v 1.2 rev 29, chapter 7.1.3. */
-    m_dev_ctx.on_off.SetOn(new_level == 0);
+    m_dev_ctx.on_off.SetOn(new_level != 0);
 }
 
 /**@brief Function for turning ON/OFF the light bulb.
