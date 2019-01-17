@@ -14,10 +14,16 @@ def buildAndUpload():
   out = subprocess.check_output(['nrfjprog', '--snr', '683044303', '--program', '_build/nrf52840_xxaa.hex',  '--chiperase', '--reset'], cwd=makefile_location).decode('utf-8')
   print(out)
 
-def waitUntilStringInUart(waitFor, port='COM11'):
-  with serial.Serial(port, 115200) as ser:
+class UartHelper:
+  def __init__(self, port):
+    self.connection = serial.Serial(port, 115200)
+
+  def __del__(self):
+    self.connection.close()
+
+  def waitUntilStringInUart(self, waitFor):
     while True:
-      line = ser.readline().decode('ascii', 'ignore')
+      line = self.connection.readline().decode('ascii', 'ignore')
       if line:
         print('Received: ' + line, end='')
         if waitFor in line:
@@ -87,13 +93,17 @@ class TestLightIsDiscoverable(unittest.TestCase):
     cls.helper.removeAllLights()
     buildAndUpload()
     cls.helper.searchForNewLights()
+    cls.localUart = UartHelper("COM11")
+    cls.remoteUart = UartHelper("COM3")
 
   @classmethod
   def tearDownClass(cls):
     cls.helper.removeAllLights()
+    del cls.localUart
+    del cls.remoteUart
 
   def test_01_JoiningNetwork(self):
-    waitUntilStringInUart('Joined network successfully')
+    self.localUart.waitUntilStringInUart('Joined network successfully')
 
   def test_02_LightDiscoveredByHue(self):
     self.assertTrue(waitUntil(self.helper.getNewLights))
@@ -102,7 +112,7 @@ class TestLightIsDiscoverable(unittest.TestCase):
   def test_03_Blink(self):
     id, _ = self.helper.getAllLights()[0]
     self.helper.turnOfAndOn(id)
-    waitUntilStringInUart('ON/OFF')
+    self.localUart.waitUntilStringInUart('ON/OFF')
 
   def test_04_ColorLightDiscoveredByHue(self):
     self.assertTrue(waitUntil(self.helper.getColorLights))
@@ -110,7 +120,7 @@ class TestLightIsDiscoverable(unittest.TestCase):
   def test_05_SetColor(self):
     id, _ = self.helper.getColorLights()[0]
     self.helper.SetGreenColor(id)
-    waitUntilStringInUart('RGB 0 255 0', 'COM3')
+    self.remoteUart.waitUntilStringInUart('RGB 0 255 0')
 
 
 if __name__ == '__main__':
