@@ -200,10 +200,10 @@ static void zb_update_color_values(bulb_device_ep_ctx_t * p_ep_dev_ctx)
                                               p_ep_dev_ctx->p_device_ctx->level_control.GetLevel());
 }
 
-void ble_thingy_master_update_led(RgbColor* p_rgb_color) {
-    NRF_LOG_INFO("Setting color to %d %d %d", p_rgb_color->r_value, p_rgb_color->g_value, p_rgb_color->b_value);
+void SetRgbColor(const RgbColor& color) {
+    NRF_LOG_INFO("Setting color to %d %d %d", color.r_value, color.g_value, color.b_value);
     char buffer[20]; // Maximal string is 'RGB 255 255 255\n\r\0' which is 18 symbols
-    int n = sprintf(buffer, "RGB %d %d %d\n\r", p_rgb_color->r_value, p_rgb_color->g_value, p_rgb_color->b_value);
+    int n = sprintf(buffer, "RGB %d %d %d\n\r", color.r_value,color.g_value, color.b_value);
     nrf_serial_write(&serial0_uarte, buffer, n, nullptr, NRF_SERIAL_MAX_TIMEOUT);
     nrf_serial_flush(&serial0_uarte, NRF_SERIAL_MAX_TIMEOUT);
 }
@@ -218,7 +218,7 @@ static void color_control_set_value_hue(bulb_device_ep_ctx_t * p_ep_dev_ctx, zb_
     p_ep_dev_ctx->p_device_ctx->color_control.attributes.set_color_info.current_hue = new_hue;
 
     zb_update_color_values(p_ep_dev_ctx);
-    ble_thingy_master_update_led(&p_ep_dev_ctx->rgb_color);
+    SetRgbColor(p_ep_dev_ctx->rgb_color);
 
     NRF_LOG_INFO("Set color hue value: %i on endpoint: %hu", new_hue, p_ep_dev_ctx->ep_id);
 }
@@ -233,7 +233,7 @@ static void color_control_set_value_saturation(bulb_device_ep_ctx_t * p_ep_dev_c
     p_ep_dev_ctx->p_device_ctx->color_control.attributes.set_color_info.current_saturation = new_saturation;
 
     zb_update_color_values(p_ep_dev_ctx);
-    ble_thingy_master_update_led(&p_ep_dev_ctx->rgb_color);
+    SetRgbColor(p_ep_dev_ctx->rgb_color);
 
     NRF_LOG_INFO("Set color saturation value: %i on endpoint: %hu", new_saturation, p_ep_dev_ctx->ep_id);
 }
@@ -242,7 +242,7 @@ void UpdateStateFromXy(zb_uint8_t) {
     auto* p_ep_dev_ctx = &zb_ep_dev_ctx;
     p_ep_dev_ctx->rgb_color = ConvertXyToRgb(p_ep_dev_ctx->p_device_ctx->color_control.attributes.set_color_info.current_X,
                                              p_ep_dev_ctx->p_device_ctx->color_control.attributes.set_color_info.current_Y);
-    ble_thingy_master_update_led(&p_ep_dev_ctx->rgb_color);
+    SetRgbColor(p_ep_dev_ctx->rgb_color);
 }
 
 void color_control_set_value_x(bulb_device_ep_ctx_t * p_ep_dev_ctx)
@@ -269,7 +269,7 @@ static void level_control_set_value(bulb_device_ep_ctx_t * p_ep_dev_ctx, zb_uint
     p_ep_dev_ctx->p_device_ctx->level_control.SetLevel(new_level);
 
     zb_update_color_values(p_ep_dev_ctx);
-    ble_thingy_master_update_led(&p_ep_dev_ctx->rgb_color);
+    SetRgbColor(p_ep_dev_ctx->rgb_color);
 
     NRF_LOG_INFO("Set level value: %i on endpoint: %hu", new_level, p_ep_dev_ctx->ep_id);
 
@@ -298,7 +298,7 @@ static void on_off_set_value(bulb_device_ep_ctx_t * p_ep_dev_ctx, zb_bool_t on)
         p_ep_dev_ctx->rgb_color.r_value = 0;
         p_ep_dev_ctx->rgb_color.g_value = 0;
         p_ep_dev_ctx->rgb_color.b_value = 0;
-        ble_thingy_master_update_led(&p_ep_dev_ctx->rgb_color);
+        SetRgbColor(p_ep_dev_ctx->rgb_color);
     }
 }
 
