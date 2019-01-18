@@ -66,11 +66,11 @@ public:
 
     void SetOn(bool is_on);
 
+    void ScheduleColorUpdate() { dirty = true; }
+    void ActuateColorUpdate();
+
     // TODO: Remove it
     uint16_t GetRemainingTime() const;
-
-    void RecalculateRgbFromXy();
-
 private:
     BasicCluster basic;
     IdentifyCluster identify;
@@ -85,9 +85,11 @@ private:
     RgbColor color;
     const zb_uint8_t endpoint;
     const nrf_serial_t* serial;
+    bool dirty = false;
 
     void RecalculateRgbFromLast();
     void RecalculateRgbFromHsb();
+    void RecalculateRgbFromXy();
     void SendColorUpdate();
 };
 

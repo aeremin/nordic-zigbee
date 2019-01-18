@@ -184,17 +184,6 @@ static bulb_device_ep_ctx_t zb_ep_dev_ctx = {
     0
 };
 
-void UpdateStateFromXy(zb_uint8_t) {
-    zb_ep_dev_ctx.p_device_ctx->RecalculateRgbFromXy();
-}
-
-void ScheduleColorUpdate()
-{
-    // For whatever reason, ZBoss updates set_color_info.current_X and set_color_info.current_Y
-    // after this callback is called (not before!). So we need to schedule an alarm.
-    ZB_SCHEDULE_ALARM(UpdateStateFromXy, /* unused */ 0, /* ASAP */ 1);
-}
-
 /**@brief Function for initializing the nrf log module.
  */
 static void log_init(void)
@@ -370,7 +359,7 @@ static zb_void_t zcl_device_cb(zb_uint8_t param)
 
                     case ZB_ZCL_ATTR_COLOR_CONTROL_CURRENT_X_ID:
                     case ZB_ZCL_ATTR_COLOR_CONTROL_CURRENT_Y_ID:
-                        ScheduleColorUpdate();
+                        p_device_ep_ctx->p_device_ctx->ScheduleColorUpdate();
                         break;
 
                     default:
@@ -557,6 +546,7 @@ int main(void)
     while (true)
     {
         zboss_main_loop_iteration();
+        zb_dev_ctx_first.ActuateColorUpdate();
         NRF_LOG_PROCESS();
     }
 }

@@ -171,3 +171,10 @@ void LightLinkColorLight::SendColorUpdate() {
 uint16_t LightLinkColorLight::GetRemainingTime() const {
     return color_control.attributes.set_color_info.remaining_time;
 }
+
+void LightLinkColorLight::ActuateColorUpdate() {
+    if (dirty) {
+        RecalculateRgbFromLast();
+        dirty = false;
+    }
+}
