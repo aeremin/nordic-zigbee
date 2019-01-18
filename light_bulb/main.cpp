@@ -153,12 +153,12 @@ NRF_SERIAL_UART_DEF(serial0_uarte, 1);
 
 APP_PWM_INSTANCE(BULB_PWM_NAME, BULB_PWM_TIMER);
 
-static HomeAutomationDimmableLight m_dev_ctx;
-static LightLinkColorLight zb_dev_ctx_first(&serial0_uarte, kColorLightEndpoint);
+static HomeAutomationDimmableLight dimmable_light;
+static LightLinkColorLight color_light(&serial0_uarte, kColorLightEndpoint);
 
 ZB_HA_DECLARE_LIGHT_EP(dimmable_light_ep,
                        kDimmableLightEndoint,
-                       m_dev_ctx.cluster_descriptors);
+                       dimmable_light.cluster_descriptors);
 
 /////////////////////////////////////// COLOR LIGHT ///////////////////////////////////////////////////
 
@@ -173,11 +173,11 @@ struct bulb_device_ep_ctx_t
 };
 
 /* Declare context variable and cluster attribute list for first endpoint */
-auto gEndpointContext = zb_dev_ctx_first.CreateColorLightEndpoint();
+auto gEndpointContext = color_light.CreateColorLightEndpoint();
 ZBOSS_DECLARE_DEVICE_CTX_2_EP(double_light_ctx, dimmable_light_ep, gEndpointContext.endpoint_descriptor);
 
 static bulb_device_ep_ctx_t zb_ep_dev_ctx = {
-    &zb_dev_ctx_first,
+    &color_light,
     {0, 0, 0},
     kColorLightEndpoint,
     ZB_FALSE,
@@ -202,7 +202,7 @@ static void level_control_set_value(uint8_t new_level)
 {
     NRF_LOG_INFO("Set level value: %i", new_level);
 
-    m_dev_ctx.level_control.SetLevel(new_level);
+    dimmable_light.level_control.SetLevel(new_level);
 
     /* Scale level value: APP_PWM uses 0-100 scale, but ZigBee level control cluster uses values from 0 up to 255. */
     new_level = new_level * 100 / 256;
@@ -213,7 +213,7 @@ static void level_control_set_value(uint8_t new_level)
     }
 
     /* According to the table 7.3 of Home Automation Profile Specification v 1.2 rev 29, chapter 7.1.3. */
-    m_dev_ctx.on_off.SetOn(new_level != 0);
+    dimmable_light.on_off.SetOn(new_level != 0);
 }
 
 /**@brief Function for turning ON/OFF the light bulb.
@@ -222,13 +222,13 @@ static void level_control_set_value(uint8_t new_level)
  */
 static void on_off_set_value(zb_bool_t on)
 {
-    m_dev_ctx.on_off.SetOn(on == ZB_TRUE);
+    dimmable_light.on_off.SetOn(on == ZB_TRUE);
 
     NRF_LOG_INFO("Set ON/OFF value: %i", on);
 
     if (on)
     {
-        level_control_set_value(m_dev_ctx.level_control.GetLevel());
+        level_control_set_value(dimmable_light.level_control.GetLevel());
     }
     else
     {
@@ -263,8 +263,8 @@ static void leds_init(void)
  */
 static void InitDevices()
 {
-    m_dev_ctx.Init("Dimmable Light", kDimmableLightEndoint);
-    zb_dev_ctx_first.Init("Color Light");
+    dimmable_light.Init("Dimmable Light", kDimmableLightEndoint);
+    color_light.Init("Color Light");
 }
 
 
@@ -538,7 +538,7 @@ int main(void)
     ZB_AF_REGISTER_DEVICE_CTX(&double_light_ctx);
 
     InitDevices();
-    level_control_set_value(m_dev_ctx.level_control.GetLevel());
+    level_control_set_value(dimmable_light.level_control.GetLevel());
 
     /** Start Zigbee Stack. */
     ZB_ERROR_CHECK(zboss_start());
@@ -546,7 +546,7 @@ int main(void)
     while (true)
     {
         zboss_main_loop_iteration();
-        zb_dev_ctx_first.ActuateColorUpdate();
+        color_light.ActuateColorUpdate();
         NRF_LOG_PROCESS();
     }
 }
