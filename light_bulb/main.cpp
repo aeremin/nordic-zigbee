@@ -174,8 +174,8 @@ struct bulb_device_ep_ctx_t
 };
 
 /* Declare context variable and cluster attribute list for first endpoint */
-ZB_ZCL_DECLARE_COLOR_LIGHT_EP(color_light_bulb_ep_first, kColorLightEndpoint, zb_dev_ctx_first.cluster_descriptors);
-ZBOSS_DECLARE_DEVICE_CTX_2_EP(double_light_ctx, dimmable_light_ep, color_light_bulb_ep_first);
+auto gEndpointContext = CreateColorLightEndpoint(kColorLightEndpoint, zb_dev_ctx_first.cluster_descriptors);
+ZBOSS_DECLARE_DEVICE_CTX_2_EP(double_light_ctx, dimmable_light_ep, gEndpointContext.endpoint_descriptor);
 
 static bulb_device_ep_ctx_t zb_ep_dev_ctx = {
     &zb_dev_ctx_first,
