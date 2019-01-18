@@ -358,7 +358,7 @@ static zb_void_t zcl_device_cb(zb_uint8_t param)
                 // and then switching to final state.
                 if (p_device_ep_ctx->p_device_ctx->GetRemainingTime() <= 1)
                 {
-                            const auto& values = p_device_cb_param->cb_param.set_attr_value_param.values;
+                    const auto& values = p_device_cb_param->cb_param.set_attr_value_param.values;
                     switch (attr_id)
                     {
                     case ZB_ZCL_ATTR_COLOR_CONTROL_CURRENT_HUE_ID:
@@ -561,8 +561,3 @@ int main(void)
         NRF_LOG_PROCESS();
     }
 }
-
-
-/**
- * @}
- */
