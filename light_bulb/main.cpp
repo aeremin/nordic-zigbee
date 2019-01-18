@@ -189,14 +189,7 @@ void UpdateStateFromXy(zb_uint8_t) {
     zb_ep_dev_ctx.p_device_ctx->RecalculateRgbFromXy();
 }
 
-void color_control_set_value_x(bulb_device_ep_ctx_t * p_ep_dev_ctx)
-{
-    // For whatever reason, ZBoss updates set_color_info.current_X and set_color_info.current_Y
-    // after this callback is called (not before!). So we need to schedule an alarm.
-    ZB_SCHEDULE_ALARM(UpdateStateFromXy, /* unused */ 0, /* ASAP */ 1);
-}
-
-void color_control_set_value_y(bulb_device_ep_ctx_t * p_ep_dev_ctx)
+void ScheduleColorUpdate()
 {
     // For whatever reason, ZBoss updates set_color_info.current_X and set_color_info.current_Y
     // after this callback is called (not before!). So we need to schedule an alarm.
@@ -377,11 +370,8 @@ static zb_void_t zcl_device_cb(zb_uint8_t param)
                         break;
 
                     case ZB_ZCL_ATTR_COLOR_CONTROL_CURRENT_X_ID:
-                        color_control_set_value_x(p_device_ep_ctx);
-                        break;
-
                     case ZB_ZCL_ATTR_COLOR_CONTROL_CURRENT_Y_ID:
-                        color_control_set_value_y(p_device_ep_ctx);
+                        ScheduleColorUpdate();
                         break;
 
                     default:
