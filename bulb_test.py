@@ -64,7 +64,7 @@ class HueHelper:
       r = requests.delete(self.baseUrl() + '/lights/' + id)
       r.raise_for_status()
 
-  def turnOfAndOn(self, id):
+  def turnOffAndOn(self, id):
     r = requests.put(self.baseUrl() + '/lights/%s/state' % id, json={'on': False})
     r.raise_for_status()
     time.sleep(0.5)
@@ -110,8 +110,9 @@ class TestLightIsDiscoverable(unittest.TestCase):
 
   def test_03_Blink(self):
     id, _ = self.helper.getAllLights()[0]
-    self.helper.turnOfAndOn(id)
-    self.localUart.waitUntilStringInUart('ON/OFF')
+    self.helper.turnOffAndOn(id)
+    self.localUart.waitUntilStringInUart('ON/OFF value: 0')
+    self.localUart.waitUntilStringInUart('ON/OFF value: 1')
 
   def test_04_ColorLightDiscoveredByHue(self):
     self.assertTrue(waitUntil(self.helper.getColorLights))
