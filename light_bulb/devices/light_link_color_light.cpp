@@ -2,7 +2,7 @@
 
 #include "nrf_log.h"
 
-LightLinkColorLight::LightLinkColorLight(const nrf_serial_t* serial) :
+LightLinkColorLight::LightLinkColorLight(const nrf_serial_t* serial, zb_uint8_t endpoint) :
   cluster_descriptors({
     ZB_ZCL_CLUSTER_DESC(
         ZB_ZCL_CLUSTER_ID_BASIC,
@@ -46,11 +46,52 @@ LightLinkColorLight::LightLinkColorLight(const nrf_serial_t* serial) :
         color_control.attributes_list,
         ZB_ZCL_CLUSTER_SERVER_ROLE,
         ZB_ZCL_MANUF_CODE_INVALID)}),
+    endpoint(endpoint),
     serial(serial)
 {
 }
 
-void LightLinkColorLight::Init(const std::string& name, zb_uint8_t endpoint) {
+EndpointContext LightLinkColorLight::CreateColorLightEndpoint() {
+    EndpointContext context;
+    context.simple_descriptor = {
+        endpoint,
+        ZB_AF_ZLL_PROFILE_ID,
+        0x0210,
+        0,
+        0,
+        kLightLinkColorLightClusterCount,
+        0, // out cluster count
+        {
+            ZB_ZCL_CLUSTER_ID_BASIC,
+            ZB_ZCL_CLUSTER_ID_IDENTIFY,
+            ZB_ZCL_CLUSTER_ID_GROUPS,
+            ZB_ZCL_CLUSTER_ID_SCENES,
+            ZB_ZCL_CLUSTER_ID_ON_OFF,
+            ZB_ZCL_CLUSTER_ID_LEVEL_CONTROL,
+            ZB_ZCL_CLUSTER_ID_COLOR_CONTROL,
+        }
+    };
+
+    context.endpoint_descriptor = {
+        endpoint,
+        ZB_AF_HA_PROFILE_ID,
+        nullptr,
+        nullptr,
+        0,
+        nullptr,
+        kLightLinkColorLightClusterCount,
+        cluster_descriptors,
+        (zb_af_simple_desc_1_1_t*) &context.simple_descriptor,
+        0,
+        ZB_ZCL_COLOR_CONTROL_REPORT_ATTR_COUNT,
+        context.reporting_info,
+        ZB_ZCL_COLOR_DIMMABLE_LIGHT_CVC_ATTR_COUNT,
+        context.cvc_alarm_info,
+    };
+    return context;
+}
+
+void LightLinkColorLight::Init(const std::string& name) {
     basic.Init(name);
     identify.Init();
     on_off.Init(endpoint);

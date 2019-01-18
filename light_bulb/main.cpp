@@ -72,7 +72,6 @@ extern "C"
 #include "devices/home_automation_dimmable_light.h"
 #include "devices/light_link_color_light.h"
 #include "color_helpers.h"
-#include "zigbee_color_light.h"
 
 const int kDimmableLightEndoint = 10;
 const int kColorLightEndpoint = 11;
@@ -155,7 +154,7 @@ NRF_SERIAL_UART_DEF(serial0_uarte, 1);
 APP_PWM_INSTANCE(BULB_PWM_NAME, BULB_PWM_TIMER);
 
 static HomeAutomationDimmableLight m_dev_ctx;
-static LightLinkColorLight zb_dev_ctx_first(&serial0_uarte);
+static LightLinkColorLight zb_dev_ctx_first(&serial0_uarte, kColorLightEndpoint);
 
 ZB_HA_DECLARE_LIGHT_EP(dimmable_light_ep,
                        kDimmableLightEndoint,
@@ -174,7 +173,7 @@ struct bulb_device_ep_ctx_t
 };
 
 /* Declare context variable and cluster attribute list for first endpoint */
-auto gEndpointContext = CreateColorLightEndpoint(kColorLightEndpoint, zb_dev_ctx_first.cluster_descriptors);
+auto gEndpointContext = zb_dev_ctx_first.CreateColorLightEndpoint();
 ZBOSS_DECLARE_DEVICE_CTX_2_EP(double_light_ctx, dimmable_light_ep, gEndpointContext.endpoint_descriptor);
 
 static bulb_device_ep_ctx_t zb_ep_dev_ctx = {
@@ -276,7 +275,7 @@ static void leds_init(void)
 static void InitDevices()
 {
     m_dev_ctx.Init("Dimmable Light", kDimmableLightEndoint);
-    zb_dev_ctx_first.Init("Color Light", kColorLightEndpoint);
+    zb_dev_ctx_first.Init("Color Light");
 }
 
 
