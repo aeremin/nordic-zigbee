@@ -99,6 +99,17 @@ void LightLinkColorLight::Init(const std::string& name) {
     color_control.Init();
 }
 
+void LightLinkColorLight::RecalculateRgbFromLast() {
+    const auto mode = color_control.attributes.set_color_info.color_mode;
+    if (mode == ZB_ZCL_COLOR_CONTROL_COLOR_MODE_HUE_SATURATION) {
+        RecalculateRgbFromHsb();
+    } else if (mode == ZB_ZCL_COLOR_CONTROL_COLOR_MODE_CURRENT_X_Y) {
+        RecalculateRgbFromXy();
+    } else {
+        NRF_LOG_WARNING("Color light: unexpected color mode: %d", mode);
+    }
+}
+
 void LightLinkColorLight::RecalculateRgbFromHsb() {
     color = ConvertHsbToRgb(color_control.attributes.set_color_info.current_hue,
                             color_control.attributes.set_color_info.current_saturation,
@@ -108,7 +119,8 @@ void LightLinkColorLight::RecalculateRgbFromHsb() {
 
 void LightLinkColorLight::RecalculateRgbFromXy() {
     color = ConvertXyToRgb(color_control.attributes.set_color_info.current_X,
-                           color_control.attributes.set_color_info.current_Y);
+                           color_control.attributes.set_color_info.current_Y,
+                           level_control.GetLevel());
     SendColorUpdate();
 }
 
@@ -131,7 +143,7 @@ void LightLinkColorLight::SetBrightness(uint8_t brightness) {
     level_control.SetLevel(brightness);
     // According to the table 7.3 of Home Automation Profile Specification v 1.2 rev 29, chapter 7.1.3.
     on_off.SetOn(brightness != 0);
-    RecalculateRgbFromHsb();
+    RecalculateRgbFromLast();
 }
 
 void LightLinkColorLight::SetOn(bool is_on) {
@@ -139,7 +151,7 @@ void LightLinkColorLight::SetOn(bool is_on) {
     on_off.SetOn(is_on);
     if (is_on)
     {
-        RecalculateRgbFromHsb();
+        RecalculateRgbFromLast();
     }
     else
     {

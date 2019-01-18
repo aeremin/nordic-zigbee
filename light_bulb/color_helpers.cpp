@@ -67,11 +67,11 @@ RgbColor ConvertHsbToRgb(uint8_t hue, uint8_t saturation, uint8_t brightness)
     return result;
 }
 
-RgbColor ConvertXyToRgb(uint16_t input_x, uint16_t input_y) {
+RgbColor ConvertXyToRgb(uint16_t input_x, uint16_t input_y, uint8_t brightness) {
     float x = float(input_x) / 0xffff;
     float y = float(input_y) / 0xffff;
     float z = 1.0f - x - y;
-    float Y = 1.0f; // Brightness. TODO: Use value from level control cluster?
+    float Y = brightness / 255.0f;
     float X = (Y / y) * x;
     float Z = (Y / y) * z;
     float r = X * 3.2406f - Y * 1.5372f - Z * 0.4986f;

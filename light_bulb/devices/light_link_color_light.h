@@ -86,6 +86,7 @@ private:
     const zb_uint8_t endpoint;
     const nrf_serial_t* serial;
 
+    void RecalculateRgbFromLast();
     void RecalculateRgbFromHsb();
     void SendColorUpdate();
 };

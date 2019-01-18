@@ -11,6 +11,6 @@ struct RgbColor {
 
 RgbColor ConvertHsbToRgb(uint8_t hue, uint8_t saturation, uint8_t brightness);
 
-RgbColor ConvertXyToRgb(uint16_t input_x, uint16_t input_y);
+RgbColor ConvertXyToRgb(uint16_t input_x, uint16_t input_y, uint8_t brightness);
 
 #endif // APP_COLOR_HERLPERS
