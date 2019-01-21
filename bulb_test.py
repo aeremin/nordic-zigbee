@@ -77,6 +77,13 @@ class HueHelper:
     r = requests.put(self.baseUrl() + '/lights/%s/state' % id, json={'xy': [0.3, 0.6]})
     r.raise_for_status()
 
+  def SetGreenColorHalfBrightness(self, id):
+    r = requests.put(self.baseUrl() + '/lights/%s/state' % id, json={'on': True})
+    r.raise_for_status()
+    # HSB to RGB conversion is not linear, so bri = 39 (of max 254) corresponds to green of 127
+    r = requests.put(self.baseUrl() + '/lights/%s/state' % id, json={'xy': [0.3, 0.6], 'bri': 39})
+    r.raise_for_status()
+
 def waitUntil(somepredicate, timeout=5, period=1):
   deadline = time.time() + timeout
   while time.time() < deadline:
@@ -121,6 +128,11 @@ class TestLightIsDiscoverable(unittest.TestCase):
     id, _ = self.helper.getColorLights()[0]
     self.helper.SetGreenColor(id)
     self.remoteUart.waitUntilStringInUart('RGB 0 255 0')
+
+  def test_06_Brightness(self):
+    id, _ = self.helper.getColorLights()[0]
+    self.helper.SetGreenColorHalfBrightness(id)
+    self.remoteUart.waitUntilStringInUart('RGB 0 127 0')
 
 
 if __name__ == '__main__':
