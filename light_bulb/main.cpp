@@ -73,11 +73,11 @@ extern "C"
 #include "devices/light_link_color_light.h"
 #include "color_helpers.h"
 
-const int kDimmableLightEndoint = 10;
-const int kColorLightEndpoint = 11;
+const int kDimmableLightEndoint = 11;
+const int kColorLightEndpoint = 10;
 
 const int kMaxZigbeeChildren = 10;
-const int kIeeeChannelMask = 1l << 20;
+const int kIeeeChannelMask = 1l << 15;
 
 const zb_bool_t kErasePersistentConfigOnRestart = ZB_TRUE;
 
@@ -264,7 +264,7 @@ static void leds_init(void)
 static void InitDevices()
 {
     dimmable_light.Init("Dimmable Light", kDimmableLightEndoint);
-    color_light.Init("Color Light");
+    color_light.Init("LCT001");
 }
 
 
