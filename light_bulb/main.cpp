@@ -79,7 +79,7 @@ const int kColorLightEndpoint = 10;
 const int kMaxZigbeeChildren = 10;
 const int kIeeeChannelMask = 1l << 15;
 
-const zb_bool_t kErasePersistentConfigOnRestart = ZB_TRUE;
+const zb_bool_t kErasePersistentConfigOnRestart = ZB_FALSE;
 
 #define BULB_PWM_NAME PWM1 /**< PWM instance used to drive dimmable light bulb. */
 #define BULB_PWM_TIMER 2   /**< Timer number used by PWM. */
@@ -521,7 +521,7 @@ int main(void)
     /* Set device address to the value read from FICR registers. */
     zb_ieee_addr_t ieee_addr;
     zb_osif_get_ieee_eui64(ieee_addr);
-    nrf_drv_rng_block_rand(ieee_addr, 3);
+    // nrf_drv_rng_block_rand(ieee_addr, 3);
     NRF_LOG_INFO("Last address bits: %d %d %d", ieee_addr[0], ieee_addr[1], ieee_addr[2]);
     zb_set_long_address(ieee_addr);
 
