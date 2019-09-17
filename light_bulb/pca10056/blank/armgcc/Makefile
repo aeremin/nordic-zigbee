@@ -2,7 +2,7 @@ PROJECT_NAME     := zigbee_light_bulb_pca10056
 TARGETS          := nrf52840_xxaa
 OUTPUT_DIRECTORY := _build
 
-SDK_ROOT := ../../../../../ZigBee2
+SDK_ROOT := ../../../../../ZigBee_2.0.0
 PROJ_DIR := ../../..
 
 $(OUTPUT_DIRECTORY)/nrf52840_xxaa.out: \
